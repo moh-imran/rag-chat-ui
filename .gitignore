@@ -1,0 +1,29 @@
+# Common
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Backend (Python)
+backend/__pycache__/
+backend/*.py[cod]
+backend/*$py.class
+backend/.env
+backend/.venv
+backend/venv/
+backend/env/
+backend/build/
+backend/dist/
+backend/*.egg-info/
+
+# Frontend (Node/Vite)
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# Docker
+.docker_data/
