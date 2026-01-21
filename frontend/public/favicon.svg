@@ -1,0 +1,32 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <radialGradient id="coreEnergy" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(256 256) rotate(90) scale(140)">
+            <stop stop-color="#38bdf8" />
+            <stop offset="0.6" stop-color="#818cf8" stop-opacity="0.5"/>
+            <stop offset="1" stop-color="#c084fc" stop-opacity="0" />
+        </radialGradient>
+        
+        <filter id="hyperGlow" x="-50%" y="-50%" width="200%" height="200%">
+             <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+             <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+             </feMerge>
+        </filter>
+    </defs>
+
+    <!-- Core -->
+    <circle cx="256" cy="256" r="220" fill="#0f172a" stroke="#38bdf8" stroke-width="10" stroke-opacity="0.3"/>
+    
+    <!-- Triangle Motif -->
+     <path d="M256 120 L380 340 L132 340 Z" stroke="#c084fc" stroke-width="15" stroke-linejoin="round" fill="none" filter="url(#hyperGlow)"/>
+
+    <!-- Center Node -->
+    <circle cx="256" cy="260" r="40" fill="#38bdf8" filter="url(#hyperGlow)"/>
+    
+    <!-- Corner Nodes -->
+    <circle cx="256" cy="120" r="20" fill="white"/>
+    <circle cx="380" cy="340" r="20" fill="white"/>
+    <circle cx="132" cy="340" r="20" fill="white"/>
+
+</svg>

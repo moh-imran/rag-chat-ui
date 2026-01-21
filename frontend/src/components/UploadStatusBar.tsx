@@ -7,9 +7,9 @@ interface UploadStatusBarProps {
 
 export default function UploadStatusBar({ status }: UploadStatusBarProps) {
     const styles = {
-        loading: 'bg-blue-500/20 text-blue-400',
-        success: 'bg-green-500/20 text-green-400',
-        error: 'bg-red-500/20 text-red-400',
+        loading: 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20 shadow-sm',
+        success: 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-sm',
+        error: 'bg-red-500/10 text-red-500 border border-red-500/20 shadow-sm',
     };
 
     const Icon = {

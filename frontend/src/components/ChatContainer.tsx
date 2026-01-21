@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loader2 } from 'lucide-react';
 import { Message, ChatConfig } from '../types';
 import { chatApi, conversationApi } from '../utils/api';
 import ChatMessage from './ChatMessage';
@@ -54,7 +53,8 @@ export default function ChatContainer({
             timestamp: new Date().toISOString(),
         };
 
-        onMessagesChange([...messages, userMessage]);
+        const updatedMessages = [...messages, userMessage];
+        onMessagesChange(updatedMessages);
         setLoading(true);
 
         try {
@@ -77,25 +77,26 @@ export default function ChatContainer({
                 timestamp: new Date().toISOString(),
             };
 
-            onMessagesChange([...messages, userMessage, assistantMessage]);
-        } catch (error) {
+            onMessagesChange([...updatedMessages, assistantMessage]);
+        } catch (error: any) {
             const errorMessage: Message = {
                 role: 'assistant',
-                content: `❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                content: `❌ Error: ${error.message || 'Unknown error'}`,
                 error: true,
-                timestamp: new Date(),
+                timestamp: new Date().toISOString(),
             };
 
-            onMessagesChange([...messages, userMessage, errorMessage]);
+            onMessagesChange([...updatedMessages, errorMessage]);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <>
-            <div className="flex-1 overflow-y-auto px-6 py-4">
-                <div className="max-w-4xl mx-auto space-y-4">
+        <div className="flex-1 flex flex-col min-h-0 relative">
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto px-4 py-8 custom-scrollbar">
+                <div className="max-w-4xl mx-auto space-y-6">
                     {messages.length === 0 ? (
                         <EmptyState />
                     ) : (
@@ -105,23 +106,34 @@ export default function ChatContainer({
                             ))}
 
                             {loading && (
-                                <div className="flex justify-start">
-                                    <div className="bg-slate-800 rounded-2xl px-4 py-3">
-                                        <div className="flex items-center gap-2">
-                                            <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
-                                            <span className="text-sm text-slate-400">Thinking...</span>
+                                <div className="flex justify-start animate-in fade-in slide-in-from-left-4 duration-300">
+                                    <div className="glass-card rounded-2xl px-4 py-3 border border-[var(--border-main)]">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex gap-1.5 px-2">
+                                                <div className="w-2 h-2 bg-[var(--accent-primary)] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                                <div className="w-2 h-2 bg-[var(--accent-primary)] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                                <div className="w-2 h-2 bg-[var(--accent-primary)] rounded-full animate-bounce"></div>
+                                            </div>
+                                            <span className="text-sm text-[var(--text-secondary)] font-medium">Thinking...</span>
                                         </div>
                                     </div>
                                 </div>
                             )}
                         </>
                     )}
-
                     <div ref={messagesEndRef} />
                 </div>
             </div>
 
-            <ChatInput onSend={handleSend} loading={loading} />
-        </>
+            {/* Input Area */}
+            <div className="p-6 bg-transparent border-t border-[var(--border-main)] relative z-10">
+                <div className="max-w-4xl mx-auto">
+                    <ChatInput
+                        onSend={handleSend}
+                        loading={loading}
+                    />
+                </div>
+            </div>
+        </div>
     );
 }

@@ -1,0 +1,98 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <!-- Volumetric Gradients -->
+        <radialGradient id="deepSpace" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(256 256) rotate(90) scale(256)">
+            <stop offset="0.4" stop-color="#0f172a" stop-opacity="0" />
+            <stop offset="1" stop-color="#020617" stop-opacity="0.2" />
+        </radialGradient>
+
+        <radialGradient id="coreEnergy" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(256 256) rotate(90) scale(140)">
+            <stop stop-color="#38bdf8" />
+            <stop offset="0.6" stop-color="#818cf8" stop-opacity="0.5"/>
+            <stop offset="1" stop-color="#c084fc" stop-opacity="0" />
+        </radialGradient>
+
+        <linearGradient id="cyberLink" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#38bdf8" />
+            <stop offset="0.5" stop-color="#818cf8" />
+            <stop offset="1" stop-color="#c084fc" />
+        </linearGradient>
+
+        <!-- Filters -->
+        <filter id="bloom" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="8" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+        
+        <filter id="hyperGlow" x="-50%" y="-50%" width="200%" height="200%">
+             <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+             <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+             </feMerge>
+        </filter>
+    </defs>
+
+    <!-- Background Ambiance -->
+    <circle cx="256" cy="256" r="240" fill="url(#deepSpace)" />
+
+    <!-- Geodesic Sphere Structure (Back) -->
+    <g stroke="url(#cyberLink)" stroke-width="0.5" stroke-opacity="0.15" fill="none">
+        <ellipse cx="256" cy="256" rx="200" ry="80" transform="rotate(30 256 256)"/>
+        <ellipse cx="256" cy="256" rx="200" ry="80" transform="rotate(-30 256 256)"/>
+        <ellipse cx="256" cy="256" rx="200" ry="80" transform="rotate(90 256 256)"/>
+        <circle cx="256" cy="256" r="180"/>
+    </g>
+
+    <!-- Core Energy Source -->
+    <circle cx="256" cy="256" r="80" fill="url(#coreEnergy)" filter="url(#bloom)">
+        <animate attributeName="opacity" values="0.7;0.9;0.7" dur="4s" repeatCount="indefinite"/>
+        <animate attributeName="r" values="78;82;78" dur="6s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- Primary Neural Constellation -->
+    <g stroke="url(#cyberLink)" stroke-width="2" stroke-linecap="round" filter="url(#hyperGlow)">
+        <!-- Main Triangle -->
+        <path d="M256 140 L340 280 L172 280 Z" stroke-opacity="0.8" fill="url(#coreEnergy)" fill-opacity="0.1">
+             <animate attributeName="stroke-opacity" values="0.8;1;0.8" dur="3s" repeatCount="indefinite"/>
+        </path>
+        
+        <!-- Satellite Connections -->
+        <path d="M256 140 L256 80" stroke-width="1.5" stroke-opacity="0.6"/>
+        <path d="M340 280 L400 320" stroke-width="1.5" stroke-opacity="0.6"/>
+        <path d="M172 280 L112 320" stroke-width="1.5" stroke-opacity="0.6"/>
+        
+        <!-- Webbing -->
+        <path d="M256 140 L380 180" stroke-width="1" stroke-opacity="0.3"/>
+        <path d="M256 140 L132 180" stroke-width="1" stroke-opacity="0.3"/>
+        <path d="M340 280 L380 180" stroke-width="1" stroke-opacity="0.3"/>
+        <path d="M172 280 L132 180" stroke-width="1" stroke-opacity="0.3"/>
+    </g>
+
+    <!-- Neural Nodes (Synapses) -->
+    <g fill="white" filter="url(#hyperGlow)">
+        <!-- Major Nodes -->
+        <circle cx="256" cy="140" r="6">
+            <animate attributeName="r" values="5;7;5" dur="2s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="340" cy="280" r="6">
+            <animate attributeName="r" values="5;7;5" dur="2.5s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="172" cy="280" r="6">
+            <animate attributeName="r" values="5;7;5" dur="2.2s" repeatCount="indefinite"/>
+        </circle>
+
+        <!-- Minor Nodes -->
+        <circle cx="256" cy="80" r="3" fill="#38bdf8"/>
+        <circle cx="400" cy="320" r="3" fill="#c084fc"/>
+        <circle cx="112" cy="320" r="3" fill="#38bdf8"/>
+        <circle cx="380" cy="180" r="3" fill="#c084fc" opacity="0.6"/>
+        <circle cx="132" cy="180" r="3" fill="#38bdf8" opacity="0.6"/>
+    </g>
+
+    <!-- Orbiting Intelligence Particles -->
+    <ellipse cx="256" cy="256" rx="220" ry="60" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.2" fill="none" transform="rotate(-20 256 256)"/>
+    <circle r="4" fill="#38bdf8" filter="url(#bloom)">
+        <animateMotion dur="8s" repeatCount="indefinite" path="M462.7,235.5c10.3,13.6,12.5,27.7,4.9,39.8c-11.8,18.9-54.6,26-118.8,22.3c-24.8-1.4-50.6-5.8-76.3-12.8c-25.7-7-50-16.2-70.9-26.6c-41.9-20.8-63.1-42.6-51.3-61.5 c11.8-18.9,54.6-26,118.8-22.3c24.8,1.4,50.6,5.8,76.3,12.8c25.7,7,50,16.2,70.9,26.6C458.2,234.6,462.7,235.5,462.7,235.5z"/>
+    </circle>
+</svg>
