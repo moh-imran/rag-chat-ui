@@ -2,13 +2,156 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+    /* Base Colors - Dark Mode (Default) */
+    --bg-main: #0f172a;
+    --bg-sidebar: rgba(15, 23, 42, 0.8);
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --border-main: rgba(255, 255, 255, 0.08);
+
+    --glass-background: rgba(15, 23, 42, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.4);
+    --glass-blur: 20px;
+
+    /* Accents */
+    --accent-primary: #38bdf8;
+    --accent-secondary: #c084fc;
+
+    /* Mesh Gradients */
+    --mesh-1: rgba(56, 189, 248, 0.1);
+    --mesh-2: rgba(192, 132, 252, 0.12);
+    --mesh-3: rgba(15, 23, 42, 0.5);
+    --noise-opacity: 0.03;
+
+    /* Backdrops */
+    --backdrop-color: rgba(2, 6, 23, 0.7);
+    --bg-neutral: rgba(255, 255, 255, 0.03);
+
+    color-scheme: dark;
+}
+
+[data-theme='light'] {
+    /* Base Colors - Light Mode */
+    --bg-main: #f8fafc;
+    --bg-sidebar: rgba(255, 255, 255, 0.8);
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --border-main: rgba(0, 0, 0, 0.08);
+
+    --glass-background: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(0, 0, 0, 0.08);
+    --glass-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
+    --glass-blur: 20px;
+
+    /* Gradients */
+    --mesh-1: rgba(56, 189, 248, 0.15);
+    --mesh-2: rgba(192, 132, 252, 0.15);
+    --mesh-3: rgba(255, 255, 255, 0.8);
+    --noise-opacity: 0.02;
+
+    /* Backdrops */
+    --backdrop-color: rgba(255, 255, 255, 0.4);
+    --bg-neutral: rgba(0, 0, 0, 0.03);
+
+    color-scheme: light;
+}
+
 body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
         'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
         sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+}
+
+.glass-panel {
+    background: var(--glass-background);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* New Neon Utilities */
+.glow-border {
+    position: relative;
+}
+
+.glow-border::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple), var(--neon-magenta));
+    border-radius: inherit;
+    z-index: -1;
+    opacity: 0.3;
+    transition: opacity 0.3s ease;
+}
+
+.glow-border:hover::after {
+    opacity: 0.6;
+}
+
+.neon-text-blue {
+    color: var(--neon-blue);
+    text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+}
+
+.neon-text-purple {
+    color: var(--neon-purple);
+    text-shadow: 0 0 10px rgba(188, 19, 254, 0.5);
+}
+
+.mesh-bg {
+    background:
+        radial-gradient(at 0% 0%, var(--mesh-1) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, var(--mesh-2) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, var(--mesh-3) 0px, transparent 100%),
+        radial-gradient(at 0% 100%, var(--mesh-1) 0px, transparent 50%);
+    background-color: var(--bg-main);
+    position: relative;
+    transition: background-color 0.5s ease;
+}
+
+.mesh-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: var(--noise-opacity);
+    pointer-events: none;
+    mix-blend-mode: overlay;
+}
+
+.glass-card {
+    background: var(--bg-neutral);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--border-main);
+    transition: all 0.3s ease;
+}
+
+Maryland .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--border-main);
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(128, 128, 128, 0.3);
 }
 
 code {

@@ -49,12 +49,39 @@ export const authApi = {
             throw handleApiError(error, 'Registration failed');
         }
     },
+    forgotPassword: async (email: string) => {
+        try {
+            const response = await api.post('/auth/forgot-password', { email });
+            return response.data;
+        } catch (error) {
+            throw handleApiError(error, 'Failed to request password reset');
+        }
+    },
     getMe: async () => {
         try {
             const response = await api.get('/auth/me');
             return response.data;
         } catch (error) {
             throw handleApiError(error, 'Failed to fetch user profile');
+        }
+    },
+    updateProfile: async (fullName?: string) => {
+        try {
+            const response = await api.put('/auth/profile', { full_name: fullName });
+            return response.data;
+        } catch (error) {
+            throw handleApiError(error, 'Failed to update profile');
+        }
+    },
+    resetPassword: async (oldPassword: string, newPassword: string) => {
+        try {
+            const response = await api.post('/auth/reset-password', {
+                old_password: oldPassword,
+                new_password: newPassword,
+            });
+            return response.data;
+        } catch (error) {
+            throw handleApiError(error, 'Failed to reset password');
         }
     },
     logout: () => {

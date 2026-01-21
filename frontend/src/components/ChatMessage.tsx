@@ -10,11 +10,11 @@ export default function ChatMessage({ message, showSources }: ChatMessageProps) 
         <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-3xl ${message.role === 'user' ? 'ml-12' : 'mr-12'}`}>
                 <div
-                    className={`rounded-2xl px-4 py-3 ${message.role === 'user'
-                        ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white'
+                    className={`rounded-2xl px-4 py-3 shadow-lg transition-all duration-300 ${message.role === 'user'
+                        ? 'bg-[var(--accent-primary)] text-white shadow-lg'
                         : message.error
-                            ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                            : 'bg-slate-800 text-slate-100'
+                            ? 'bg-red-500/10 text-red-500 border border-red-500/20'
+                            : 'glass-card text-[var(--text-primary)] border-[var(--border-main)]'
                         }`}
                 >
                     <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
@@ -29,7 +29,7 @@ export default function ChatMessage({ message, showSources }: ChatMessageProps) 
                                     <span className="text-slate-400 font-medium">
                                         {source.metadata?.filename || 'Unknown'}
                                     </span>
-                                    <span className="text-blue-400">
+                                    <span className="text-[#0ff] font-bold tracking-tight">
                                         {(source.score * 100).toFixed(1)}% match
                                     </span>
                                 </div>

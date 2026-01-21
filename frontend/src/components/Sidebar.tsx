@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MessageSquare, Plus, Trash2, Loader2, LogOut } from 'lucide-react';
+import { MessageSquare, Plus, Loader2, LogOut, Database, User as UserIcon, Sun, Moon } from 'lucide-react';
 import { conversationApi } from '../utils/api';
 import { Conversation } from '../types';
 
@@ -7,12 +7,22 @@ interface SidebarProps {
     onSelectConversation: (id: string) => void;
     onNewChat: () => void;
     currentConversationId?: string;
+    onOpenProfile: () => void;
+    onOpenDataSources: () => void;
+    onLogout: () => void;
+    theme: 'light' | 'dark';
+    onToggleTheme: () => void;
 }
 
 export default function Sidebar({
     onSelectConversation,
     onNewChat,
-    currentConversationId
+    currentConversationId,
+    onOpenProfile,
+    onOpenDataSources,
+    onLogout,
+    theme,
+    onToggleTheme
 }: SidebarProps) {
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [loading, setLoading] = useState(true);
@@ -40,6 +50,7 @@ export default function Sidebar({
         loadConversations();
     }, [currentConversationId]);
 
+
     const formatDate = (dateStr: string) => {
         const date = new Date(dateStr);
         return date.toLocaleDateString(undefined, {
@@ -51,44 +62,46 @@ export default function Sidebar({
     };
 
     return (
-        <div className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-full">
+        <div className="w-64 glass-panel border-r border-[var(--border-main)] flex flex-col h-full z-20 transition-colors duration-500">
             <div className="p-4">
                 <button
                     onClick={onNewChat}
-                    className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 transition-colors font-medium shadow-lg shadow-blue-900/20"
+                    className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-[var(--border-main)] text-[var(--text-primary)] rounded-lg py-2.5 transition-all font-semibold active:scale-[0.98] shadow-sm"
                 >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-4 h-4 text-[var(--accent-primary)]" />
                     New Chat
                 </button>
             </div>
 
             <div className="flex-1 overflow-y-auto px-2 space-y-1 custom-scrollbar">
+                <div className="h-px bg-[var(--border-main)] mx-4 my-2" />
+
                 {loading && conversations.length === 0 ? (
                     <div className="flex items-center justify-center p-8">
-                        <Loader2 className="w-6 h-6 text-slate-500 animate-spin" />
+                        <Loader2 className="w-6 h-6 text-[var(--text-secondary)] animate-spin" />
                     </div>
                 ) : conversations.length === 0 ? (
                     <div className="text-center p-8">
-                        <p className="text-sm text-slate-500 italic">No conversations yet</p>
+                        <p className="text-sm text-[var(--text-secondary)] italic">No conversations yet</p>
                     </div>
                 ) : (
-                    conversations.map((conv) => (
+                    conversations.map((conv: Conversation) => (
                         <button
                             key={conv.id}
                             onClick={() => onSelectConversation(conv.id)}
-                            className={`w-full text-left p-3 rounded-lg transition-all group relative ${currentConversationId === conv.id
-                                ? 'bg-slate-800 border-l-2 border-blue-500 text-white'
-                                : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                            className={`w-full text-left p-3 rounded-xl transition-all group relative ${currentConversationId === conv.id
+                                ? 'bg-[var(--accent-primary)]/10 border-l-2 border-[var(--accent-primary)] text-[var(--text-primary)] shadow-[inset_4px_0_15px_rgba(0,242,255,0.05)]'
+                                : 'text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)]'
                                 }`}
                         >
                             <div className="flex items-start gap-3">
-                                <MessageSquare className={`w-4 h-4 mt-1 flex-shrink-0 ${currentConversationId === conv.id ? 'text-blue-400' : 'text-slate-500'
+                                <MessageSquare className={`w-4 h-4 mt-1 flex-shrink-0 ${currentConversationId === conv.id ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]/50'
                                     }`} />
                                 <div className="min-w-0 flex-1">
                                     <p className="text-sm font-medium truncate leading-tight">
                                         {conv.title}
                                     </p>
-                                    <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">
+                                    <p className="text-[10px] text-[var(--text-secondary)] mt-1 uppercase tracking-wider font-semibold opacity-70">
                                         {formatDate(conv.updated_at)}
                                     </p>
                                 </div>
@@ -98,10 +111,57 @@ export default function Sidebar({
                 )}
             </div>
 
-            <div className="p-4 border-t border-slate-800">
-                <div className="flex items-center gap-2 text-xs text-slate-500 px-2 py-1">
-                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                    Connected to RAG API
+            <div className="p-4 border-t border-[var(--border-main)] space-y-1">
+                <p className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-widest px-3 mb-2 opacity-50">Workbench</p>
+
+                <button
+                    onClick={onOpenDataSources}
+                    className="w-full flex items-center justify-between px-3 py-2 text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-white/5 rounded-lg transition-all group"
+                >
+                    <div className="flex items-center gap-3">
+                        <Database className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                        <span className="text-sm font-medium">Data Sources</span>
+                    </div>
+                </button>
+
+                <div className="h-2" />
+
+                <button
+                    onClick={onOpenProfile}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/5 rounded-lg transition-all"
+                >
+                    <UserIcon className="w-4 h-4" />
+                    <span className="text-sm font-medium">Profile Settings</span>
+                </button>
+
+                <div className="h-px bg-[var(--border-main)] mx-1 my-2" />
+
+                <button
+                    onClick={onToggleTheme}
+                    className="w-full flex items-center justify-between px-3 py-2.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/5 rounded-lg transition-all"
+                >
+                    <div className="flex items-center gap-3">
+                        {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                        <span className="text-sm font-medium">{theme === 'light' ? 'Dark' : 'Light'} Mode</span>
+                    </div>
+                </button>
+
+                <button
+                    onClick={onLogout}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-[var(--text-secondary)] hover:text-red-400 hover:bg-red-400/5 rounded-lg transition-all"
+                >
+                    <LogOut className="w-4 h-4" />
+                    <span className="text-sm font-medium">Sign Out</span>
+                </button>
+
+                <div className="pt-4 pb-2">
+                    <div className="flex items-center gap-2.5 px-3 py-1.5 glass-card border-none bg-emerald-500/5 rounded-full w-fit">
+                        <div className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_10px_#10b981]"></span>
+                        </div>
+                        <span className="text-[10px] font-bold text-emerald-400/90 uppercase tracking-widest">Engine Online</span>
+                    </div>
                 </div>
             </div>
         </div>

@@ -96,3 +96,43 @@ async def get_me(current_user: User = Depends(get_current_user)):
         full_name=current_user.full_name,
         id=str(current_user.id)
     )
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+
+@router.put("/profile", response_model=UserResponse)
+async def update_profile(user_update: UserUpdate, current_user: User = Depends(get_current_user)):
+    if user_update.full_name is not None:
+        current_user.full_name = user_update.full_name
+    
+    await current_user.save()
+    return UserResponse(
+        email=current_user.email,
+        full_name=current_user.full_name,
+        id=str(current_user.id)
+    )
+
+class PasswordReset(BaseModel):
+    old_password: str
+    new_password: str
+
+@router.post("/reset-password")
+async def reset_password(pw_reset: PasswordReset, current_user: User = Depends(get_current_user)):
+    if not verify_password(pw_reset.old_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect old password"
+        )
+    
+    current_user.hashed_password = get_password_hash(pw_reset.new_password)
+    await current_user.save()
+    return {"message": "Password updated successfully"}
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+@router.post("/forgot-password")
+async def forgot_password(request: ForgotPasswordRequest):
+    # In a real app, this would send an email
+    # For now, we simulation success to allow frontend development
+    # Rate limiting would also apply here
+    return {"message": "If an account exists with this email, a password reset link has been sent."}

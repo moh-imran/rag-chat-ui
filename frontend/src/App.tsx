@@ -1,79 +1,105 @@
-import { useState, useEffect } from 'react';
-import ChatContainer from './components/ChatContainer';
+import React, { useState, useCallback, useEffect } from 'react';
 import Header from './components/Header';
-import SettingsPanel from './components/SettingsPanel';
-import UploadStatusBar from './components/UploadStatusBar';
-import Auth from './components/Auth';
 import Sidebar from './components/Sidebar';
-import { Message, ChatConfig, UploadStatus, User } from './types';
+import ChatContainer from './components/ChatContainer';
+import ProfileModal from './components/ProfileModal';
+import DataSourcesModal from './components/DataSourcesModal';
+import { User, Conversation, UploadStatus, ChatConfig, Message } from './types';
 import { authApi } from './utils/api';
+import Auth from './components/Auth';
+import UploadStatusBar from './components/UploadStatusBar';
 
 function App() {
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem('token'));
     const [user, setUser] = useState<User | null>(null);
-    const [messages, setMessages] = useState<Message[]>([]);
     const [config, setConfig] = useState<ChatConfig>({
-        topK: 5,
+        topK: 3,
         temperature: 0.7,
         showSources: true,
     });
-    const [showSettings, setShowSettings] = useState(false);
+    const [showProfile, setShowProfile] = useState(false);
+    const [showDataSourcesModal, setShowDataSourcesModal] = useState(false);
     const [uploadStatus, setUploadStatus] = useState<UploadStatus | null>(null);
     const [currentConversationId, setCurrentConversationId] = useState<string | undefined>();
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+        return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
+    });
 
     useEffect(() => {
-        if (isAuthenticated) {
-            authApi.getMe().then(setUser).catch(() => setIsAuthenticated(false));
+        localStorage.setItem('theme', theme);
+        document.documentElement.setAttribute('data-theme', theme);
+    }, [theme]);
+
+    useEffect(() => {
+        const checkAuth = async () => {
+            try {
+                const userData = await authApi.getMe();
+                setUser(userData);
+            } catch (err) {
+                setUser(null);
+            }
+        };
+        checkAuth();
+    }, []);
+
+    const handleLogout = async () => {
+        try {
+            await authApi.logout();
+            setUser(null);
+        } catch (err) {
+            console.error('Logout failed', err);
         }
-    }, [isAuthenticated]);
+    };
 
-    const clearChat = () => {
-        setMessages([]);
+    const clearChat = useCallback(() => {
         setCurrentConversationId(undefined);
-    };
+        setMessages([]);
+    }, []);
 
-    const handleLogout = () => {
-        authApi.logout();
-        setIsAuthenticated(false);
-        setUser(null);
-        clearChat();
-    };
-
-    if (!isAuthenticated) {
-        return <Auth onAuthSuccess={() => setIsAuthenticated(true)} />;
+    if (!user) {
+        return <Auth onAuthSuccess={() => authApi.getMe().then(setUser)} />;
     }
 
     return (
-        <div className="flex h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="flex h-screen mesh-bg font-sans selection:bg-[#38bdf8]/30">
             <Sidebar
                 onSelectConversation={setCurrentConversationId}
                 onNewChat={clearChat}
                 currentConversationId={currentConversationId}
+                onOpenProfile={() => setShowProfile(true)}
+                onOpenDataSources={() => setShowDataSourcesModal(true)}
+                onLogout={handleLogout}
+                theme={theme}
+                onToggleTheme={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
             />
 
             <div className="flex-1 flex flex-col min-w-0">
-                <Header
-                    onClearChat={clearChat}
-                    onLogout={handleLogout}
-                    onToggleSettings={() => setShowSettings(!showSettings)}
-                    onUploadStatusChange={setUploadStatus}
-                    user={user}
-                />
-
-                {showSettings && (
-                    <SettingsPanel config={config} onConfigChange={setConfig} />
-                )}
+                <Header user={user} />
 
                 {uploadStatus && <UploadStatusBar status={uploadStatus} />}
 
                 <ChatContainer
-                    messages={messages}
-                    config={config}
-                    onMessagesChange={setMessages}
                     conversationId={currentConversationId}
+                    messages={messages}
+                    onMessagesChange={setMessages}
                     onConversationIdChange={setCurrentConversationId}
+                    config={config}
                 />
             </div>
+
+            <ProfileModal
+                isOpen={showProfile}
+                onClose={() => setShowProfile(false)}
+                user={user}
+                onUserUpdate={setUser}
+            />
+            <DataSourcesModal
+                isOpen={showDataSourcesModal}
+                onClose={() => setShowDataSourcesModal(false)}
+                onUploadStatusChange={setUploadStatus}
+                config={config}
+                onConfigChange={setConfig}
+            />
         </div>
     );
 }
