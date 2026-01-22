@@ -51,6 +51,108 @@ class RagApiClient:
                 logger.error(f"Error calling upload API: {e}")
                 raise
 
+    async def etl_ingest(self, source_type: str, source_params: Optional[Dict[str, Any]] = None, chunk_size: int = 1000, chunk_overlap: int = 200, batch_size: int = 32, store_in_qdrant: bool = True) -> Dict[str, Any]:
+        """Call the rag-qa-api generic ingestion endpoint (/ingest/run)"""
+        payload = {
+            "source_type": source_type,
+            "source_params": source_params or {},
+            "chunk_size": chunk_size,
+            "chunk_overlap": chunk_overlap,
+            "batch_size": batch_size,
+            "store_in_qdrant": store_in_qdrant
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(f"{self.base_url}/ingest/run", json=payload, timeout=120.0)
+                response.raise_for_status()
+                return response.json()
+            except Exception as e:
+                logger.error(f"Error calling etl_ingest API: {e}")
+                raise
+
+    async def etl_submit(self, source_type: str, source_params: Optional[Dict[str, Any]] = None, chunk_size: int = 1000, chunk_overlap: int = 200, batch_size: int = 32, store_in_qdrant: bool = True) -> Dict[str, Any]:
+        """Submit an async ETL job to rag-qa-api (/ingest/submit)"""
+        payload = {
+            "source_type": source_type,
+            "source_params": source_params or {},
+            "chunk_size": chunk_size,
+            "chunk_overlap": chunk_overlap,
+            "batch_size": batch_size,
+            "store_in_qdrant": store_in_qdrant
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(f"{self.base_url}/ingest/submit", json=payload, timeout=30.0)
+                response.raise_for_status()
+                return response.json()
+            except Exception as e:
+                logger.error(f"Error calling etl_submit API: {e}")
+                raise
+
+    async def etl_status(self, job_id: str) -> Dict[str, Any]:
+        """Get job status from rag-qa-api (/ingest/status/{job_id})"""
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(f"{self.base_url}/ingest/status/{job_id}", timeout=10.0)
+                response.raise_for_status()
+                return response.json()
+            except Exception as e:
+                logger.error(f"Error calling etl_status API: {e}")
+                raise
+
+    async def etl_list_jobs(self, limit: int = 50) -> Dict[str, Any]:
+        """List ingest jobs from rag-qa-api (/ingest/jobs)"""
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(f"{self.base_url}/ingest/jobs?limit={limit}", timeout=10.0)
+                response.raise_for_status()
+                return response.json()
+            except Exception as e:
+                logger.error(f"Error calling etl_list_jobs API: {e}")
+                raise
+
+    async def create_integration(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(f"{self.base_url}/integrations/", json=payload, timeout=20.0)
+                response.raise_for_status()
+                return response.json()
+            except Exception as e:
+                logger.error(f"Error creating integration: {e}")
+                raise
+
+    async def list_integrations(self) -> Dict[str, Any]:
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(f"{self.base_url}/integrations/", timeout=10.0)
+                response.raise_for_status()
+                return response.json()
+            except Exception as e:
+                logger.error(f"Error listing integrations: {e}")
+                raise
+
+    async def delete_integration(self, integration_id: str) -> Dict[str, Any]:
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.delete(f"{self.base_url}/integrations/{integration_id}", timeout=10.0)
+                response.raise_for_status()
+                return response.json()
+            except Exception as e:
+                logger.error(f"Error deleting integration: {e}")
+                raise
+
+    async def etl_job_logs(self, job_id: str) -> Dict[str, Any]:
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(f"{self.base_url}/ingest/jobs/{job_id}/logs", timeout=10.0)
+                response.raise_for_status()
+                return response.json()
+            except Exception as e:
+                logger.error(f"Error calling etl_job_logs API: {e}")
+                raise
+
     async def chat_query(
         self,
         question: str,

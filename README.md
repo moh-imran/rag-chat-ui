@@ -47,6 +47,7 @@ The application will be available at:
 
 - **Chat Interface**: Clean and intuitive UI for interacting with RAG services.
 - **Service Integration**: Seamlessly connects to the RAG QA API for document-based retrieval and generation.
+- **Data Source Ingestion**: The UI can submit ingestion jobs (Confluence, SharePoint, Notion, Database, Web, Git, Files) which are proxied to the `rag-qa-api` ETL pipeline. Jobs are submitted via `/etl/submit` and polled via `/etl/status/{job_id}`. Use the Data Sources modal to submit jobs and view recent job history.
 - **Chat History**: Persists conversations in MongoDB.
 - **Modern Tech Stack**: Built with contemporary tools for performance and developer experience.
 

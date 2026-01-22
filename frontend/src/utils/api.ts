@@ -221,6 +221,109 @@ export const chatApi = {
         }
     },
 
+    ingestNotion: async (request: { api_key: string; database_id?: string; page_id?: string; chunk_size?: number; chunk_overlap?: number; batch_size?: number; store_in_qdrant?: boolean; }) => {
+        try {
+            const response = await api.post('/etl/ingest', {
+                source_type: 'notion',
+                source_params: {
+                    api_key: request.api_key,
+                    database_id: request.database_id,
+                    page_id: request.page_id
+                },
+                chunk_size: request.chunk_size || 1000,
+                chunk_overlap: request.chunk_overlap || 200,
+                batch_size: request.batch_size || 32,
+                store_in_qdrant: request.store_in_qdrant !== false
+            });
+            return response.data;
+        } catch (error) {
+            throw handleApiError(error, 'Failed to ingest Notion content');
+        }
+    },
+
+    ingestDatabase: async (request: { host: string; port?: number; database: string; user?: string; password?: string; db_type?: string; query?: string; table?: string; chunk_size?: number; chunk_overlap?: number; batch_size?: number; store_in_qdrant?: boolean; }) => {
+        try {
+            const response = await api.post('/etl/ingest', {
+                source_type: 'database',
+                source_params: {
+                    host: request.host,
+                    port: request.port || 5432,
+                    database: request.database,
+                    user: request.user,
+                    password: request.password,
+                    db_type: request.db_type || 'postgresql',
+                    query: request.query,
+                    table: request.table
+                },
+                chunk_size: request.chunk_size || 1000,
+                chunk_overlap: request.chunk_overlap || 200,
+                batch_size: request.batch_size || 32,
+                store_in_qdrant: request.store_in_qdrant !== false
+            });
+            return response.data;
+        } catch (error) {
+            throw handleApiError(error, 'Failed to ingest Database content');
+        }
+    },
+
+    ingestSubmit: async (payload: any) => {
+        try {
+            const response = await api.post('/etl/submit', payload);
+            return response.data;
+        } catch (error) {
+            throw handleApiError(error, 'Failed to submit ingest job');
+        }
+    },
+
+    ingestStatus: async (jobId: string) => {
+        try {
+            const response = await api.get(`/etl/status/${jobId}`);
+            return response.data;
+        } catch (error) {
+            throw handleApiError(error, 'Failed to get ingest status');
+        }
+    },
+    ingestListJobs: async (limit: number = 50) => {
+        try {
+            const response = await api.get(`/etl/jobs?limit=${limit}`);
+            return response.data;
+        } catch (error) {
+            throw handleApiError(error, 'Failed to list ingest jobs');
+        }
+    },
+    createIntegration: async (payload: any) => {
+        try {
+            const response = await api.post('/integrations', payload);
+            return response.data;
+        } catch (error) {
+            throw handleApiError(error, 'Failed to create integration');
+        }
+    },
+    listIntegrations: async () => {
+        try {
+            const response = await api.get('/integrations');
+            return response.data;
+        } catch (error) {
+            throw handleApiError(error, 'Failed to list integrations');
+        }
+    },
+    deleteIntegration: async (id: string) => {
+        try {
+            const response = await api.delete(`/integrations/${id}`);
+            return response.data;
+        } catch (error) {
+            throw handleApiError(error, 'Failed to delete integration');
+        }
+    },
+    ingestJobLogs: async (jobId: string) => {
+        try {
+            const response = await api.get(`/etl/jobs/${jobId}/logs`);
+            return response.data;
+        } catch (error) {
+            throw handleApiError(error, 'Failed to fetch job logs');
+        }
+    },
+
     submitFeedback: async (request: FeedbackRequest): Promise<any> => {
         try {
             const response = await api.post('/evaluation/feedback', request);

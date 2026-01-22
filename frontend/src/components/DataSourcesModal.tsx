@@ -13,6 +13,8 @@ interface DataSourcesModalProps {
 }
 
 type IngestType = 'file' | 'web' | 'git';
+// extend to notion and database
+type IngestTypeExtended = IngestType | 'notion' | 'database';
 
 export default function DataSourcesModal({
     isOpen,
@@ -22,7 +24,7 @@ export default function DataSourcesModal({
     onConfigChange
 }: DataSourcesModalProps) {
     const [activeTab, setActiveTab] = useState<'ingest' | 'configure'>('ingest');
-    const [ingestType, setIngestType] = useState<IngestType>('file');
+    const [ingestType, setIngestType] = useState<IngestTypeExtended>('file');
 
     // Upload State
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -37,6 +39,89 @@ export default function DataSourcesModal({
     // Git Ingest State
     const [repoUrl, setRepoUrl] = useState('');
     const [branch, setBranch] = useState('main');
+
+    // Notion State
+    const [notionApiKey, setNotionApiKey] = useState('');
+    const [notionDatabaseId, setNotionDatabaseId] = useState('');
+
+    // selection for saved integrations
+    const [selectedConfluenceIntegration, setSelectedConfluenceIntegration] = useState<string | null>(null);
+    const [selectedSharepointIntegration, setSelectedSharepointIntegration] = useState<string | null>(null);
+
+    // Database State
+    const [dbHost, setDbHost] = useState('');
+    const [dbPort, setDbPort] = useState<number>(5432);
+    const [dbName, setDbName] = useState('');
+    const [dbUser, setDbUser] = useState('');
+    const [dbPassword, setDbPassword] = useState('');
+    // Confluence State
+    const [confBaseUrl, setConfBaseUrl] = useState('');
+    const [confEmail, setConfEmail] = useState('');
+    const [confApiToken, setConfApiToken] = useState('');
+    // SharePoint State
+    const [spSiteId, setSpSiteId] = useState('');
+    const [spAccessToken, setSpAccessToken] = useState('');
+    // Jobs
+    const [jobs, setJobs] = useState<Array<any>>([]);
+    const [pollingJobId, setPollingJobId] = useState<string | null>(null);
+
+    const loadJobs = async () => {
+        try {
+            const res = await chatApi.ingestListJobs();
+            setJobs(res.jobs || []);
+        } catch (e) {
+            console.warn('Failed to load jobs', e);
+        }
+    };
+
+    const loadIntegrations = async () => {
+        try {
+            const res = await chatApi.listIntegrations();
+            // store under different categories
+            // not deeply normalized; just attach to state for selection
+            setIntegrations(res.integrations || []);
+        } catch (e) {
+            console.warn('Failed to load integrations', e);
+        }
+    };
+
+    // local state for integrations
+    const [integrations, setIntegrations] = useState<Array<any>>([]);
+
+    React.useEffect(() => {
+        // load recent jobs on open
+        if (isOpen) loadJobs();
+    }, [isOpen]);
+
+    React.useEffect(() => {
+        if (isOpen) loadIntegrations();
+    }, [isOpen]);
+
+    React.useEffect(() => {
+        if (!pollingJobId) return;
+        let cancelled = false;
+        const interval = setInterval(async () => {
+            try {
+                const status = await chatApi.ingestStatus(pollingJobId);
+                // update local jobs list
+                setJobs(prev => {
+                    const others = prev.filter(j => j.job_id !== pollingJobId);
+                    return [status, ...others].slice(0, 50);
+                });
+                if (status.status === 'completed' || status.status === 'failed') {
+                    setPollingJobId(null);
+                }
+            } catch (e) {
+                console.warn('Polling failed', e);
+                setPollingJobId(null);
+            }
+        }, 2000);
+
+        return () => {
+            clearInterval(interval);
+            cancelled = true;
+        };
+    }, [pollingJobId]);
 
     if (!isOpen) return null;
 
@@ -195,6 +280,34 @@ export default function DataSourcesModal({
                                     <Github className="w-3.5 h-3.5" />
                                     Git Repo
                                 </button>
+                                <button
+                                    onClick={() => setIngestType('notion')}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-md transition-all ${ingestType === 'notion' ? 'bg-[var(--accent-primary)] text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                                >
+                                    <FileText className="w-3.5 h-3.5" />
+                                    Notion
+                                </button>
+                                <button
+                                    onClick={() => setIngestType('database')}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-md transition-all ${ingestType === 'database' ? 'bg-[var(--accent-primary)] text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                                >
+                                    <Database className="w-3.5 h-3.5" />
+                                    Database
+                                </button>
+                                <button
+                                    onClick={() => setIngestType('confluence')}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-md transition-all ${ingestType === 'confluence' ? 'bg-[var(--accent-primary)] text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                                >
+                                    <FileText className="w-3.5 h-3.5" />
+                                    Confluence
+                                </button>
+                                <button
+                                    onClick={() => setIngestType('sharepoint')}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-md transition-all ${ingestType === 'sharepoint' ? 'bg-[var(--accent-primary)] text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                                >
+                                    <Database className="w-3.5 h-3.5" />
+                                    SharePoint
+                                </button>
                             </div>
 
                             {ingestType === 'file' && (
@@ -316,6 +429,212 @@ export default function DataSourcesModal({
                                     >
                                         {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Clone & Ingest'}
                                     </button>
+                                </div>
+                            )}
+
+                            {ingestType === 'notion' && (
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Notion API Key</label>
+                                        <input
+                                            type="password"
+                                            placeholder="secret_integration_token"
+                                            value={notionApiKey}
+                                            onChange={(e) => setNotionApiKey(e.target.value)}
+                                            className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-white/10 text-white text-sm focus:border-[var(--accent-primary)] outline-none"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Database ID (optional)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Notion database id"
+                                            value={notionDatabaseId}
+                                            onChange={(e) => setNotionDatabaseId(e.target.value)}
+                                            className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-white/10 text-white text-sm focus:border-[var(--accent-primary)] outline-none"
+                                        />
+                                    </div>
+                                    <button
+                                        disabled={!notionApiKey || uploading}
+                                        onClick={async () => {
+                                            setUploading(true);
+                                            onUploadStatusChange({ type: 'loading', message: 'Ingesting Notion...' });
+                                            try {
+                                                await chatApi.ingestNotion({ api_key: notionApiKey, database_id: notionDatabaseId });
+                                                onUploadStatusChange({ type: 'success', message: '✅ Notion ingestion started' });
+                                                setNotionApiKey('');
+                                                setNotionDatabaseId('');
+                                            } catch (error) {
+                                                onUploadStatusChange({ type: 'error', message: `❌ ${error instanceof Error ? error.message : 'Notion ingestion failed'}` });
+                                            } finally {
+                                                setUploading(false);
+                                                setTimeout(() => onUploadStatusChange(null), 4000);
+                                            }
+                                        }}
+                                        className="w-full bg-[var(--accent-primary)] hover:brightness-110 disabled:opacity-30 text-white rounded-lg py-3 font-semibold transition-all shadow-lg flex items-center justify-center gap-2"
+                                    >
+                                        {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Ingest Notion'}
+                                    </button>
+                                </div>
+                            )}
+
+                            {ingestType === 'confluence' && (
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Confluence Base URL</label>
+                                        <input type="url" placeholder="https://your-domain.atlassian.net/wiki" value={confBaseUrl} onChange={(e) => setConfBaseUrl(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-white/10 text-white text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <input type="email" placeholder="user@example.com" value={confEmail} onChange={(e) => setConfEmail(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-white/10 text-white text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                        <input type="password" placeholder="api token" value={confApiToken} onChange={(e) => setConfApiToken(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-white/10 text-white text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <select value={selectedConfluenceIntegration || ''} onChange={(e) => setSelectedConfluenceIntegration(e.target.value || null)} className="bg-slate-900/50 rounded px-3 py-2 text-sm">
+                                            <option value="">-- Use saved integration --</option>
+                                            {integrations.filter(i => i.type === 'confluence').map(i => (
+                                                <option key={i.id} value={i.id}>{i.name}</option>
+                                            ))}
+                                        </select>
+                                        <button onClick={() => loadIntegrations()} className="px-3 py-2 text-xs text-[var(--accent-primary)]">Refresh</button>
+                                    </div>
+                                    <button disabled={(!confBaseUrl && !selectedConfluenceIntegration) || (!confEmail && !selectedConfluenceIntegration && !confApiToken) || uploading} onClick={async () => {
+                                        setUploading(true);
+                                        onUploadStatusChange({ type: 'loading', message: 'Submitting Confluence ingest...' });
+                                            try {
+                                                const source_params: any = {};
+                                                if (selectedConfluenceIntegration) {
+                                                    source_params['integration_id'] = selectedConfluenceIntegration;
+                                                } else {
+                                                    source_params['base_url'] = confBaseUrl;
+                                                    source_params['email'] = confEmail;
+                                                    source_params['api_token'] = confApiToken;
+                                                }
+                                                const res = await chatApi.ingestSubmit({ source_type: 'confluence', source_params });
+                                                onUploadStatusChange({ type: 'success', message: `Job submitted: ${res.job_id}` });
+                                                setPollingJobId(res.job_id);
+                                                // update jobs list
+                                                setJobs(prev => [{ job_id: res.job_id, status: 'running', progress: 0, meta: { source_type: 'confluence' } }, ...prev].slice(0, 50));
+                                                setConfBaseUrl(''); setConfEmail(''); setConfApiToken('');
+                                        } catch (error) {
+                                            onUploadStatusChange({ type: 'error', message: `❌ ${error instanceof Error ? error.message : 'Confluence ingest failed'}` });
+                                        } finally {
+                                            setUploading(false);
+                                            setTimeout(() => onUploadStatusChange(null), 4000);
+                                        }
+                                    }} className="w-full bg-[var(--accent-primary)] hover:brightness-110 disabled:opacity-30 text-white rounded-lg py-3 font-semibold transition-all shadow-lg flex items-center justify-center gap-2">{uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Submit Confluence Ingest'}</button>
+                                </div>
+                            )}
+
+                            {ingestType === 'sharepoint' && (
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">SharePoint Site ID</label>
+                                        <input type="text" placeholder="{tenant}.sharepoint.com,site-id" value={spSiteId} onChange={(e) => setSpSiteId(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-white/10 text-white text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Access Token</label>
+                                        <input type="password" placeholder="OAuth access token" value={spAccessToken} onChange={(e) => setSpAccessToken(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-white/10 text-white text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <select value={selectedSharepointIntegration || ''} onChange={(e) => setSelectedSharepointIntegration(e.target.value || null)} className="bg-slate-900/50 rounded px-3 py-2 text-sm">
+                                            <option value="">-- Use saved integration --</option>
+                                            {integrations.filter(i => i.type === 'sharepoint').map(i => (
+                                                <option key={i.id} value={i.id}>{i.name}</option>
+                                            ))}
+                                        </select>
+                                        <button onClick={() => loadIntegrations()} className="px-3 py-2 text-xs text-[var(--accent-primary)]">Refresh</button>
+                                    </div>
+                                    <button disabled={(!spSiteId && !selectedSharepointIntegration) || (!spAccessToken && !selectedSharepointIntegration) || uploading} onClick={async () => {
+                                        setUploading(true);
+                                        onUploadStatusChange({ type: 'loading', message: 'Submitting SharePoint ingest...' });
+                                            try {
+                                                const source_params: any = {};
+                                                if (selectedSharepointIntegration) {
+                                                    source_params['integration_id'] = selectedSharepointIntegration;
+                                                } else {
+                                                    source_params['site_id'] = spSiteId;
+                                                    source_params['access_token'] = spAccessToken;
+                                                }
+                                                const res = await chatApi.ingestSubmit({ source_type: 'sharepoint', source_params });
+                                                onUploadStatusChange({ type: 'success', message: `Job submitted: ${res.job_id}` });
+                                                setPollingJobId(res.job_id);
+                                                setJobs(prev => [{ job_id: res.job_id, status: 'running', progress: 0, meta: { source_type: 'sharepoint' } }, ...prev].slice(0, 50));
+                                                setSpSiteId(''); setSpAccessToken(''); setSelectedSharepointIntegration(null);
+                                        } catch (error) {
+                                            onUploadStatusChange({ type: 'error', message: `❌ ${error instanceof Error ? error.message : 'SharePoint ingest failed'}` });
+                                        } finally {
+                                            setUploading(false);
+                                            setTimeout(() => onUploadStatusChange(null), 4000);
+                                        }
+                                    }} className="w-full bg-[var(--accent-primary)] hover:brightness-110 disabled:opacity-30 text-white rounded-lg py-3 font-semibold transition-all shadow-lg flex items-center justify-center gap-2">{uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Submit SharePoint Ingest'}</button>
+                                </div>
+                            )}
+
+                            {/* Job history panel */}
+                            <div className="pt-6 border-t border-[var(--border-main)]">
+                                <div className="flex items-center justify-between mb-3">
+                                    <p className="text-sm font-semibold text-[var(--text-primary)]">Ingest Jobs</p>
+                                    <button onClick={loadJobs} className="text-xs text-[var(--accent-primary)]">Refresh</button>
+                                </div>
+                                <div className="space-y-2 max-h-48 overflow-auto">
+                                    {jobs.length === 0 && <p className="text-xs text-[var(--text-secondary)]">No recent jobs</p>}
+                                    {jobs.map(job => (
+                                        <div key={job.job_id} className="flex items-center justify-between bg-[var(--bg-neutral)] p-2 rounded">
+                                            <div className="min-w-0">
+                                                <p className="text-sm truncate">{job.job_id}</p>
+                                                <p className="text-xs text-[var(--text-secondary)]">{job.meta?.source_type || job.meta?.params?.source_type || 'unknown'}</p>
+                                            </div>
+                                            <div className="text-right flex items-center gap-2">
+                                                <p className="text-sm font-mono">{job.status}</p>
+                                                <button onClick={async () => {
+                                                    try {
+                                                        const res = await chatApi.ingestJobLogs(job.job_id);
+                                                        const logs = res.logs || [];
+                                                        alert(logs.length ? logs.join('\n') : 'No logs');
+                                                    } catch (e) {
+                                                        alert('Failed to load logs');
+                                                    }
+                                                }} className="text-xs text-[var(--accent-primary)]">View</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {ingestType === 'database' && (
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Host</label>
+                                            <input type="text" placeholder="db.example.com" value={dbHost} onChange={(e) => setDbHost(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-white/10 text-white text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Port</label>
+                                            <input type="number" placeholder="5432" value={dbPort} onChange={(e) => setDbPort(parseInt(e.target.value || '5432'))} className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-white/10 text-white text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Database Name</label>
+                                        <input type="text" placeholder="mydb" value={dbName} onChange={(e) => setDbName(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-white/10 text-white text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <input type="text" placeholder="user" value={dbUser} onChange={(e) => setDbUser(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-white/10 text-white text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                        <input type="password" placeholder="password" value={dbPassword} onChange={(e) => setDbPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-white/10 text-white text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                    </div>
+                                    <button disabled={!dbHost || !dbName || uploading} onClick={async () => {
+                                        setUploading(true);
+                                        onUploadStatusChange({ type: 'loading', message: 'Connecting to database...' });
+                                        try {
+                                            await chatApi.ingestDatabase({ host: dbHost, port: dbPort, database: dbName, user: dbUser, password: dbPassword });
+                                            onUploadStatusChange({ type: 'success', message: '✅ Database ingestion started' });
+                                            setDbHost(''); setDbName(''); setDbUser(''); setDbPassword(''); setDbPort(5432);
+                                        } catch (error) {
+                                            onUploadStatusChange({ type: 'error', message: `❌ ${error instanceof Error ? error.message : 'Database ingestion failed'}` });
+                                        } finally {
+                                            setUploading(false);
+                                            setTimeout(() => onUploadStatusChange(null), 4000);
+                                        }
+                                    }} className="w-full bg-[var(--accent-primary)] hover:brightness-110 disabled:opacity-30 text-white rounded-lg py-3 font-semibold transition-all shadow-lg flex items-center justify-center gap-2">{uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Ingest Database'}</button>
                                 </div>
                             )}
                         </div>
