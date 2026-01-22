@@ -125,3 +125,20 @@ async def get_conversation_history(
             timestamp=m.timestamp.isoformat()
         ) for m in messages
     ]
+
+@router.delete("/conversations/{conv_id}")
+async def delete_conversation(
+    conv_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    conversation = await Conversation.get(conv_id)
+    if not conversation or conversation.user.ref.id != current_user.id:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    # Delete all messages associated with this conversation
+    await Message.find(Message.conversation.id == conversation.id).delete()
+    
+    # Delete the conversation itself
+    await conversation.delete()
+    
+    return {"status": "success", "message": "Conversation deleted"}

@@ -15,6 +15,10 @@ function App() {
         topK: 3,
         temperature: 0.7,
         showSources: true,
+        useHyde: false,
+        routingStrategy: 'auto',
+        selectedCollections: [],
+        metadataFilters: {},
     });
     const [showProfile, setShowProfile] = useState(false);
     const [showDataSourcesModal, setShowDataSourcesModal] = useState(false);

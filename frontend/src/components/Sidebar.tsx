@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MessageSquare, Plus, Loader2, LogOut, Database, User as UserIcon, Sun, Moon } from 'lucide-react';
+import { MessageSquare, Plus, Loader2, LogOut, Database, User as UserIcon, Sun, Moon, Trash2 } from 'lucide-react';
 import { conversationApi } from '../utils/api';
 import { Conversation } from '../types';
 
@@ -38,6 +38,21 @@ export default function Sidebar({
         }
     };
 
+    const handleDeleteConversation = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        if (!confirm('Are you sure you want to delete this conversation?')) return;
+
+        try {
+            await conversationApi.delete(id);
+            setConversations(prev => prev.filter(c => c.id !== id));
+            if (currentConversationId === id) {
+                onNewChat();
+            }
+        } catch (error) {
+            console.error('Failed to delete conversation', error);
+        }
+    };
+
     useEffect(() => {
         loadConversations();
         // Refresh every minute to keep timestamps fresh or when a new chat might have been started elsewhere
@@ -49,7 +64,6 @@ export default function Sidebar({
     useEffect(() => {
         loadConversations();
     }, [currentConversationId]);
-
 
     const formatDate = (dateStr: string) => {
         const date = new Date(dateStr);
@@ -86,27 +100,35 @@ export default function Sidebar({
                     </div>
                 ) : (
                     conversations.map((conv: Conversation) => (
-                        <button
-                            key={conv.id}
-                            onClick={() => onSelectConversation(conv.id)}
-                            className={`w-full text-left p-3 rounded-xl transition-all group relative ${currentConversationId === conv.id
-                                ? 'bg-[var(--accent-primary)]/10 border-l-2 border-[var(--accent-primary)] text-[var(--text-primary)] shadow-[inset_4px_0_15px_rgba(0,242,255,0.05)]'
-                                : 'text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)]'
-                                }`}
-                        >
-                            <div className="flex items-start gap-3">
-                                <MessageSquare className={`w-4 h-4 mt-1 flex-shrink-0 ${currentConversationId === conv.id ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]/50'
-                                    }`} />
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-medium truncate leading-tight">
-                                        {conv.title}
-                                    </p>
-                                    <p className="text-[10px] text-[var(--text-secondary)] mt-1 uppercase tracking-wider font-semibold opacity-70">
-                                        {formatDate(conv.updated_at)}
-                                    </p>
+                        <div key={conv.id} className="relative group/item">
+                            <button
+                                onClick={() => onSelectConversation(conv.id)}
+                                className={`w-full text-left p-3 pr-10 rounded-xl transition-all ${currentConversationId === conv.id
+                                    ? 'bg-[var(--accent-primary)]/10 border-l-2 border-[var(--accent-primary)] text-[var(--text-primary)] shadow-[inset_4px_0_15px_rgba(0,242,255,0.05)]'
+                                    : 'text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)]'
+                                    }`}
+                            >
+                                <div className="flex items-start gap-3">
+                                    <MessageSquare className={`w-4 h-4 mt-1 flex-shrink-0 ${currentConversationId === conv.id ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]/50'
+                                        }`} />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-sm font-medium truncate leading-tight">
+                                            {conv.title}
+                                        </p>
+                                        <p className="text-[10px] text-[var(--text-secondary)] mt-1 uppercase tracking-wider font-semibold opacity-70">
+                                            {formatDate(conv.updated_at)}
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        </button>
+                            </button>
+                            <button
+                                onClick={(e) => handleDeleteConversation(e, conv.id)}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-500 hover:text-red-400 opacity-0 group-hover/item:opacity-100 transition-all"
+                                title="Delete Chat"
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
                     ))
                 )}
             </div>

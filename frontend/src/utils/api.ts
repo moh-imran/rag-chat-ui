@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import { QueryRequest, QueryResponse } from '../types';
+import { QueryRequest, QueryResponse, StreamEvent, FeedbackRequest, WebIngestionRequest, GitIngestionRequest } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
 
@@ -110,6 +110,58 @@ export const chatApi = {
         }
     },
 
+    queryStream: async (
+        request: QueryRequest,
+        onEvent: (event: StreamEvent) => void,
+        onError?: (error: Error) => void
+    ): Promise<void> => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/chat/query/stream`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                },
+                body: JSON.stringify(request)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const reader = response.body?.getReader();
+            const decoder = new TextDecoder();
+
+            if (!reader) {
+                throw new Error('No response body');
+            }
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const event = JSON.parse(line.slice(6)) as StreamEvent;
+                            onEvent(event);
+                        } catch (e) {
+                            console.error('Error parsing SSE:', e);
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            const err = error instanceof Error ? error : new Error('Streaming failed');
+            onError?.(err);
+            throw err;
+        }
+    },
+
     uploadFile: async (
         file: File,
         onProgress?: (progress: number) => void
@@ -125,7 +177,7 @@ export const chatApi = {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
-                onUploadProgress: (progressEvent) => {
+                onUploadProgress: (progressEvent: any) => {
                     if (progressEvent.total) {
                         const progress = (progressEvent.loaded / progressEvent.total) * 100;
                         onProgress?.(progress);
@@ -142,6 +194,39 @@ export const chatApi = {
                 );
             }
             throw error;
+        }
+    },
+
+    ingestWeb: async (request: WebIngestionRequest): Promise<any> => {
+        try {
+            const response = await api.post('/etl/ingest', {
+                source_type: 'web',
+                ...request
+            });
+            return response.data;
+        } catch (error) {
+            throw handleApiError(error, 'Failed to ingest web content');
+        }
+    },
+
+    ingestGit: async (request: GitIngestionRequest): Promise<any> => {
+        try {
+            const response = await api.post('/etl/ingest', {
+                source_type: 'git',
+                ...request
+            });
+            return response.data;
+        } catch (error) {
+            throw handleApiError(error, 'Failed to ingest Git repository');
+        }
+    },
+
+    submitFeedback: async (request: FeedbackRequest): Promise<any> => {
+        try {
+            const response = await api.post('/evaluation/feedback', request);
+            return response.data;
+        } catch (error) {
+            throw handleApiError(error, 'Failed to submit feedback');
         }
     },
 
@@ -162,6 +247,10 @@ export const conversationApi = {
     },
     getHistory: async (convId: string) => {
         const response = await api.get(`/chat/conversations/${convId}`);
+        return response.data;
+    },
+    delete: async (convId: string) => {
+        const response = await api.delete(`/chat/conversations/${convId}`);
         return response.data;
     }
 };
