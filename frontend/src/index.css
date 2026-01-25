@@ -58,6 +58,17 @@
     color-scheme: light;
 }
 
+/* Text selection styling */
+::selection {
+    background-color: var(--accent-primary);
+    color: white;
+}
+
+::-moz-selection {
+    background-color: var(--accent-primary);
+    color: white;
+}
+
 body {
     margin: 0;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -157,4 +168,32 @@ Maryland .custom-scrollbar::-webkit-scrollbar {
 code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
         monospace;
+}
+
+/* Ensure text is selectable in chat messages */
+.select-text {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+    cursor: text;
+}
+
+/* Make message content selectable */
+.chat-message-content {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
+/* Markdown content should be selectable */
+.prose {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+.prose * {
+    -webkit-user-select: text;
+    user-select: text;
 }

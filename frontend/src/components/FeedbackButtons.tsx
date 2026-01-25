@@ -65,13 +65,13 @@ export const FeedbackButtons: React.FC<FeedbackButtonsProps> = ({
     if (!queryId) return null;
 
     return (
-        <div className="flex items-center gap-2 mt-2">
+        <div className="flex items-center gap-1">
             <button
                 onClick={handleThumbsUp}
                 disabled={feedback?.submitted || isSubmitting}
-                className={`p-2 rounded-lg transition-all ${feedback?.type === 'thumbs_up'
-                        ? 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-300'
-                        : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500'
+                className={`p-1.5 rounded-md transition-all text-sm ${feedback?.type === 'thumbs_up'
+                        ? 'bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-400'
                     } ${feedback?.submitted ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
                 title="Helpful answer"
             >
@@ -80,17 +80,17 @@ export const FeedbackButtons: React.FC<FeedbackButtonsProps> = ({
             <button
                 onClick={handleThumbsDown}
                 disabled={feedback?.submitted || isSubmitting}
-                className={`p-2 rounded-lg transition-all ${feedback?.type === 'thumbs_down'
-                        ? 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300'
-                        : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500'
+                className={`p-1.5 rounded-md transition-all text-sm ${feedback?.type === 'thumbs_down'
+                        ? 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-400'
                     } ${feedback?.submitted ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
                 title="Not helpful"
             >
                 👎
             </button>
             {feedback?.submitted && (
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Thanks for your feedback!
+                <span className="text-xs text-green-500 dark:text-green-400 ml-1">
+                    ✓
                 </span>
             )}
         </div>

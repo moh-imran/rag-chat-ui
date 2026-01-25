@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MessageSquare, Plus, Loader2, LogOut, Database, User as UserIcon, Sun, Moon, Trash2 } from 'lucide-react';
+import { MessageSquare, Plus, Loader2, Database, Trash2 } from 'lucide-react';
 import { conversationApi } from '../utils/api';
 import { Conversation } from '../types';
 
@@ -7,22 +7,14 @@ interface SidebarProps {
     onSelectConversation: (id: string) => void;
     onNewChat: () => void;
     currentConversationId?: string;
-    onOpenProfile: () => void;
     onOpenDataSources: () => void;
-    onLogout: () => void;
-    theme: 'light' | 'dark';
-    onToggleTheme: () => void;
 }
 
 export default function Sidebar({
     onSelectConversation,
     onNewChat,
     currentConversationId,
-    onOpenProfile,
-    onOpenDataSources,
-    onLogout,
-    theme,
-    onToggleTheme
+    onOpenDataSources
 }: SidebarProps) {
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [loading, setLoading] = useState(true);
@@ -144,36 +136,6 @@ export default function Sidebar({
                         <Database className="w-4 h-4 group-hover:scale-110 transition-transform" />
                         <span className="text-sm font-medium">Data Sources</span>
                     </div>
-                </button>
-
-                <div className="h-2" />
-
-                <button
-                    onClick={onOpenProfile}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/5 rounded-lg transition-all"
-                >
-                    <UserIcon className="w-4 h-4" />
-                    <span className="text-sm font-medium">Profile Settings</span>
-                </button>
-
-                <div className="h-px bg-[var(--border-main)] mx-1 my-2" />
-
-                <button
-                    onClick={onToggleTheme}
-                    className="w-full flex items-center justify-between px-3 py-2.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/5 rounded-lg transition-all"
-                >
-                    <div className="flex items-center gap-3">
-                        {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-                        <span className="text-sm font-medium">{theme === 'light' ? 'Dark' : 'Light'} Mode</span>
-                    </div>
-                </button>
-
-                <button
-                    onClick={onLogout}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-[var(--text-secondary)] hover:text-red-400 hover:bg-red-400/5 rounded-lg transition-all"
-                >
-                    <LogOut className="w-4 h-4" />
-                    <span className="text-sm font-medium">Sign Out</span>
                 </button>
 
                 <div className="pt-4 pb-2">

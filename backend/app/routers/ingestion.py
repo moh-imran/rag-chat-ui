@@ -3,7 +3,8 @@ from pathlib import Path
 import tempfile
 import os
 import logging
-from ..services.api_client import RagApiClient
+import httpx
+from ..services.api_client import RagApiClient, _extract_error_message
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
 
@@ -122,9 +123,15 @@ async def etl_status(job_id: str):
     try:
         result = await _api_client.etl_status(job_id)
         return result
+    except httpx.HTTPStatusError as e:
+        # Propagate the status code from upstream
+        error_msg = _extract_error_message(e)
+        logger.error(f"Error proxying ETL status: {error_msg}")
+        raise HTTPException(status_code=e.response.status_code, detail=error_msg)
     except Exception as e:
-        logger.error(f"Error proxying ETL status: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        error_msg = _extract_error_message(e)
+        logger.error(f"Error proxying ETL status: {error_msg}")
+        raise HTTPException(status_code=500, detail=error_msg)
 
 
 @router.get('/etl/jobs')
@@ -134,9 +141,14 @@ async def etl_jobs(limit: int = 50):
     try:
         result = await _api_client.etl_list_jobs(limit=limit)
         return result
+    except httpx.HTTPStatusError as e:
+        error_msg = _extract_error_message(e)
+        logger.error(f"Error proxying ETL jobs list: {error_msg}")
+        raise HTTPException(status_code=e.response.status_code, detail=error_msg)
     except Exception as e:
-        logger.error(f"Error proxying ETL jobs list: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        error_msg = _extract_error_message(e)
+        logger.error(f"Error proxying ETL jobs list: {error_msg}")
+        raise HTTPException(status_code=500, detail=error_msg)
 
 
 @router.get('/etl/jobs/{job_id}/logs')
@@ -146,6 +158,30 @@ async def etl_job_logs(job_id: str):
     try:
         result = await _api_client.etl_job_logs(job_id)
         return result
+    except httpx.HTTPStatusError as e:
+        error_msg = _extract_error_message(e)
+        logger.error(f"Error proxying ETL job logs: {error_msg}")
+        raise HTTPException(status_code=e.response.status_code, detail=error_msg)
     except Exception as e:
-        logger.error(f"Error proxying ETL job logs: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        error_msg = _extract_error_message(e)
+        logger.error(f"Error proxying ETL job logs: {error_msg}")
+        raise HTTPException(status_code=500, detail=error_msg)
+
+
+# Alias routes for backwards compatibility (without /etl prefix)
+@router.post('/submit')
+async def ingest_submit(request: EtlSubmitRequest):
+    """Alias for /etl/submit - submit an async ingestion job"""
+    return await etl_submit(request)
+
+
+@router.get('/status/{job_id}')
+async def ingest_status(job_id: str):
+    """Alias for /etl/status/{job_id}"""
+    return await etl_status(job_id)
+
+
+@router.get('/jobs')
+async def ingest_jobs(limit: int = 50):
+    """Alias for /etl/jobs"""
+    return await etl_jobs(limit)

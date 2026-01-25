@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Users, TrendingUp, MessageSquare, Plug, Briefcase, Activity, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Users, TrendingUp, MessageSquare, Plug, Briefcase, Activity, ChevronRight, Sliders } from 'lucide-react';
 import Logo from './Logo';
 
 interface NavItemProps {
@@ -85,6 +85,12 @@ export default function AdminSidebar({ activeView, onNavigate }: AdminSidebarPro
           label="ETL Jobs"
           active={activeView === 'etl'}
           onClick={() => onNavigate('etl')}
+        />
+        <NavItem
+          icon={Sliders}
+          label="Chat Settings"
+          active={activeView === 'settings'}
+          onClick={() => onNavigate('settings')}
         />
         <NavItem
           icon={Activity}

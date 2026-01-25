@@ -8,6 +8,7 @@ interface StreamingState {
     retrievalStatus: string;
     sources: Source[];
     queryId?: string;
+    conversationId?: string;
     collectionsQueried?: string[];
 }
 
@@ -23,7 +24,7 @@ export const useStreaming = () => {
         setState({
             isStreaming: true,
             streamingContent: '',
-            retrievalStatus: 'Initializing...',
+            retrievalStatus: '🔍 Searching documents...',
             sources: [],
         });
 
@@ -31,7 +32,17 @@ export const useStreaming = () => {
             await chatApi.queryStream(
                 request,
                 (event: StreamEvent) => {
-                    switch (event.type) {
+                    // Handle both 'type' and 'event' field names
+                    const eventType = event.type || (event as any).event;
+                    switch (eventType) {
+                        case 'conversation_id':
+                            const newConvId = (event as any).conversation_id || event.data?.conversation_id;
+                            setState(prev => ({
+                                ...prev,
+                                conversationId: newConvId,
+                            }));
+                            break;
+
                         case 'retrieval_start':
                             setState(prev => ({
                                 ...prev,
@@ -66,6 +77,8 @@ export const useStreaming = () => {
                                 ...prev,
                                 isStreaming: false,
                                 retrievalStatus: '',
+                                // Ensure queryId is set to trigger message finalization
+                                queryId: prev.queryId || 'stream-complete',
                             }));
                             break;
 
@@ -104,6 +117,8 @@ export const useStreaming = () => {
             streamingContent: '',
             retrievalStatus: '',
             sources: [],
+            conversationId: undefined,
+            queryId: undefined,
         });
     }, []);
 

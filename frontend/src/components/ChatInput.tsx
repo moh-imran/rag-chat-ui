@@ -25,14 +25,20 @@ export default function ChatInput({ onSend, loading }: ChatInputProps) {
     return (
         <div className="relative">
             <div className="relative flex gap-1 p-1.5 glass-panel rounded-2xl">
-                <input
-                    type="text"
+                <textarea
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    onKeyPress={handleKeyPress}
+                    onKeyDown={handleKeyPress}
                     placeholder="Ask anything about your documents..."
                     disabled={loading}
-                    className="flex-1 bg-transparent text-[var(--text-primary)] px-4 py-3 focus:outline-none text-sm placeholder:text-[var(--text-secondary)] disabled:opacity-50"
+                    rows={1}
+                    className="flex-1 bg-transparent text-[var(--text-primary)] px-4 py-3 focus:outline-none text-sm placeholder:text-[var(--text-secondary)] disabled:opacity-50 resize-none min-h-[44px] max-h-[200px] overflow-y-auto"
+                    style={{ height: 'auto' }}
+                    onInput={(e) => {
+                        const target = e.target as HTMLTextAreaElement;
+                        target.style.height = 'auto';
+                        target.style.height = Math.min(target.scrollHeight, 200) + 'px';
+                    }}
                 />
                 <button
                     onClick={handleSend}

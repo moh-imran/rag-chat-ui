@@ -8,6 +8,7 @@ import UserManagement from './components/UserManagement'
 import Analytics from './components/Analytics'
 import Conversations from './components/Conversations'
 import SystemMonitor from './components/SystemMonitor'
+import ChatSettings from './components/ChatSettings'
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
@@ -50,6 +51,7 @@ export default function App() {
           {activeView === 'users' && <UserManagement token={token} />}
           {activeView === 'analytics' && <Analytics token={token} />}
           {activeView === 'conversations' && <Conversations token={token} />}
+          {activeView === 'settings' && <ChatSettings token={token} />}
           {activeView === 'system' && <SystemMonitor token={token} />}
           {(activeView === 'integrations' || activeView === 'etl') && <AdminPanel />}
         </main>

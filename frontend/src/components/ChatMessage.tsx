@@ -1,6 +1,7 @@
 import { Message, FeedbackData } from '../types';
 import { FeedbackButtons } from './FeedbackButtons';
 import { SourceBadge } from './SourceBadge';
+import { MarkdownRenderer } from './MarkdownRenderer';
 import { useState } from 'react';
 
 interface ChatMessageProps {
@@ -32,18 +33,17 @@ export default function ChatMessage({ message, showSources, onFeedbackSubmitted,
                                 : 'glass-card text-[var(--text-primary)] border-[var(--border-main)]'
                         }`}
                 >
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
-
-                    {/* Streaming indicator */}
-                    {message.isStreaming && (
-                        <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-                            <div className="flex space-x-1">
-                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" />
-                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                            </div>
-                            <span>Generating...</span>
+                    {message.role === 'user' ? (
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap select-text cursor-text chat-message-content">{message.content}</p>
+                    ) : (
+                        <div className="text-sm leading-relaxed select-text chat-message-content">
+                            <MarkdownRenderer content={message.content} />
                         </div>
+                    )}
+
+                    {/* Streaming cursor indicator */}
+                    {message.isStreaming && (
+                        <span className="inline-block w-1.5 h-4 bg-[var(--accent-primary)] animate-pulse ml-0.5 align-middle" />
                     )}
                 </div>
 
@@ -79,7 +79,7 @@ export default function ChatMessage({ message, showSources, onFeedbackSubmitted,
 
                 {/* Feedback and Query ID (for assistant messages only) */}
                 {message.role === 'assistant' && !message.error && (
-                    <div className="mt-2 flex items-center justify-between">
+                    <div className="mt-3 pt-2 border-t border-gray-200/10 flex items-center justify-between gap-4">
                         <FeedbackButtons
                             queryId={message.query_id}
                             initialFeedback={message.feedback}
@@ -93,10 +93,10 @@ export default function ChatMessage({ message, showSources, onFeedbackSubmitted,
                         {message.query_id && (
                             <button
                                 onClick={copyQueryId}
-                                className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                                className="text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors font-mono"
                                 title="Copy Query ID"
                             >
-                                {showQueryId ? '✓ Copied!' : `ID: ${message.query_id.slice(0, 8)}...`}
+                                {showQueryId ? '✓ Copied!' : `${message.query_id.slice(0, 8)}...`}
                             </button>
                         )}
                     </div>

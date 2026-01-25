@@ -17,15 +17,37 @@ export default function AdminPanel() {
     setLoading(true);
     try {
       const ints = await api.get('/integrations');
-      setIntegrations(Array.isArray(ints.data) ? ints.data : (ints.data.items || []));
+      // Handle various response formats from backend
+      const intData = ints.data;
+      if (Array.isArray(intData)) {
+        setIntegrations(intData);
+      } else if (intData?.integrations) {
+        setIntegrations(intData.integrations);
+      } else if (intData?.items) {
+        setIntegrations(intData.items);
+      } else {
+        setIntegrations([]);
+      }
     } catch (e) {
-      console.error(e);
+      console.error('Error loading integrations:', e);
+      setIntegrations([]);
     }
     try {
       const j = await api.get('/etl/jobs?limit=50');
-      setJobs(j.data.items || j.data || []);
+      // Handle various response formats
+      const jobData = j.data;
+      if (Array.isArray(jobData)) {
+        setJobs(jobData);
+      } else if (jobData?.jobs) {
+        setJobs(jobData.jobs);
+      } else if (jobData?.items) {
+        setJobs(jobData.items);
+      } else {
+        setJobs([]);
+      }
     } catch (e) {
-      console.error(e);
+      console.error('Error loading ETL jobs:', e);
+      setJobs([]);
     }
     setLoading(false);
   };

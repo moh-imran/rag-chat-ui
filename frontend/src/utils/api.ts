@@ -199,9 +199,9 @@ export const chatApi = {
 
     ingestWeb: async (request: WebIngestionRequest): Promise<any> => {
         try {
-            const response = await api.post('/etl/ingest', {
+            const response = await api.post('/ingest/etl/ingest', {
                 source_type: 'web',
-                ...request
+                source_params: request
             });
             return response.data;
         } catch (error) {
@@ -211,9 +211,9 @@ export const chatApi = {
 
     ingestGit: async (request: GitIngestionRequest): Promise<any> => {
         try {
-            const response = await api.post('/etl/ingest', {
+            const response = await api.post('/ingest/etl/ingest', {
                 source_type: 'git',
-                ...request
+                source_params: request
             });
             return response.data;
         } catch (error) {
@@ -223,7 +223,7 @@ export const chatApi = {
 
     ingestNotion: async (request: { api_key: string; database_id?: string; page_id?: string; chunk_size?: number; chunk_overlap?: number; batch_size?: number; store_in_qdrant?: boolean; }) => {
         try {
-            const response = await api.post('/etl/ingest', {
+            const response = await api.post('/ingest/etl/ingest', {
                 source_type: 'notion',
                 source_params: {
                     api_key: request.api_key,
@@ -243,7 +243,7 @@ export const chatApi = {
 
     ingestDatabase: async (request: { host: string; port?: number; database: string; user?: string; password?: string; db_type?: string; query?: string; table?: string; chunk_size?: number; chunk_overlap?: number; batch_size?: number; store_in_qdrant?: boolean; }) => {
         try {
-            const response = await api.post('/etl/ingest', {
+            const response = await api.post('/ingest/etl/ingest', {
                 source_type: 'database',
                 source_params: {
                     host: request.host,
@@ -268,7 +268,7 @@ export const chatApi = {
 
     ingestSubmit: async (payload: any) => {
         try {
-            const response = await api.post('/etl/submit', payload);
+            const response = await api.post('/ingest/submit', payload);
             return response.data;
         } catch (error) {
             throw handleApiError(error, 'Failed to submit ingest job');
@@ -277,17 +277,32 @@ export const chatApi = {
 
     ingestStatus: async (jobId: string) => {
         try {
-            const response = await api.get(`/etl/status/${jobId}`);
+            const response = await api.get(`/ingest/status/${jobId}`, { timeout: 15000 });
             return response.data;
         } catch (error) {
+            // On timeout, return a pseudo-status indicating still processing
+            if (axios.isAxiosError(error) && (error.code === 'ECONNABORTED' || error.message.includes('timeout'))) {
+                return {
+                    job_id: jobId,
+                    status: 'running',
+                    progress: -1, // Unknown progress
+                    error: null,
+                    _timeout: true // Flag to indicate this is a timeout response
+                };
+            }
             throw handleApiError(error, 'Failed to get ingest status');
         }
     },
     ingestListJobs: async (limit: number = 50) => {
         try {
-            const response = await api.get(`/etl/jobs?limit=${limit}`);
+            const response = await api.get(`/ingest/jobs?limit=${limit}`, { timeout: 15000 });
             return response.data;
         } catch (error) {
+            // On timeout, return empty list to avoid crashing
+            if (axios.isAxiosError(error) && (error.code === 'ECONNABORTED' || error.message.includes('timeout'))) {
+                console.warn('Jobs list request timed out, returning cached or empty list');
+                return { jobs: [], _timeout: true };
+            }
             throw handleApiError(error, 'Failed to list ingest jobs');
         }
     },
@@ -317,7 +332,7 @@ export const chatApi = {
     },
     ingestJobLogs: async (jobId: string) => {
         try {
-            const response = await api.get(`/etl/jobs/${jobId}/logs`);
+            const response = await api.get(`/ingest/jobs/${jobId}/logs`);
             return response.data;
         } catch (error) {
             throw handleApiError(error, 'Failed to fetch job logs');

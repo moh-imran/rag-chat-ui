@@ -22,7 +22,7 @@ export default function ChatContainer({
     conversationId,
     onConversationIdChange
 }: ChatContainerProps) {
-    const { streamQuery, isStreaming, streamingContent, retrievalStatus, sources, queryId, reset: resetStream } = useStreaming();
+    const { streamQuery, isStreaming, streamingContent, retrievalStatus, sources, queryId, conversationId: newConversationId, reset: resetStream } = useStreaming();
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -82,9 +82,16 @@ export default function ChatContainer({
         }
     };
 
+    // Effect to update conversation ID when a new one is received from streaming
+    useEffect(() => {
+        if (newConversationId && newConversationId !== conversationId) {
+            onConversationIdChange(newConversationId);
+        }
+    }, [newConversationId, conversationId, onConversationIdChange]);
+
     // Effect to finalize streaming message
     useEffect(() => {
-        if (!isStreaming && streamingContent && queryId) {
+        if (!isStreaming && streamingContent && (queryId || newConversationId)) {
             const assistantMessage: Message = {
                 role: 'assistant',
                 content: streamingContent,
@@ -93,16 +100,10 @@ export default function ChatContainer({
                 timestamp: new Date().toISOString(),
             };
 
-            // Check if the last assistant message (the one that might have response.conversation_id) is already there
-            // Actually our queryStream doesn't return the conversation_id directly in a JSON, 
-            // the backend should ideally send it in 'done' event if it's new.
-            // For now, if we don't have conversionId, we might need to fetch it or the backend sends it.
-            // Assuming queryId is sufficient for now but if the backend returns conversationId in done event we should use it.
-
             onMessagesChange(prevMessages => [...prevMessages, assistantMessage]);
             resetStream();
         }
-    }, [isStreaming, queryId, resetStream, onMessagesChange, streamingContent, sources]); // Removed messages from deps by using functional update. streamingContent and sources are still needed here to ensure the final message has the correct content and sources.
+    }, [isStreaming, queryId, newConversationId, resetStream, onMessagesChange, streamingContent, sources]);
 
     const handleFeedbackSubmitted = (index: number, feedback: FeedbackData) => {
         const newMessages = [...messages];
@@ -110,9 +111,10 @@ export default function ChatContainer({
         onMessagesChange(newMessages);
     };
 
-    const streamingMessage: Message | null = isStreaming ? {
+    // Only show streaming message when we have actual content
+    const streamingMessage: Message | null = (isStreaming && streamingContent) ? {
         role: 'assistant',
-        content: streamingContent || '...',
+        content: streamingContent,
         sources: sources,
         query_id: queryId,
         isStreaming: true,
@@ -147,7 +149,10 @@ export default function ChatContainer({
 
                             {isStreaming && !streamingContent && (
                                 <div className="flex justify-start">
-                                    <StreamingIndicator status={retrievalStatus} />
+                                    <StreamingIndicator
+                                        status={retrievalStatus || 'Thinking...'}
+                                        isActive={true}
+                                    />
                                 </div>
                             )}
                         </>

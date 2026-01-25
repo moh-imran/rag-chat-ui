@@ -11,14 +11,25 @@ import UploadStatusBar from './components/UploadStatusBar';
 
 function App() {
     const [user, setUser] = useState<User | null>(null);
-    const [config, setConfig] = useState<ChatConfig>({
-        topK: 3,
-        temperature: 0.7,
-        showSources: true,
-        useHyde: false,
-        routingStrategy: 'auto',
-        selectedCollections: [],
-        metadataFilters: {},
+    const [config, setConfig] = useState<ChatConfig>(() => {
+        // Load config from localStorage (set by admin panel)
+        const savedConfig = localStorage.getItem('chatConfig');
+        if (savedConfig) {
+            try {
+                return JSON.parse(savedConfig);
+            } catch (e) {
+                console.error('Failed to load chat config');
+            }
+        }
+        return {
+            topK: 5,
+            temperature: 0.7,
+            showSources: false,
+            useHyde: false,
+            routingStrategy: 'auto',
+            selectedCollections: [],
+            metadataFilters: {},
+        };
     });
     const [showProfile, setShowProfile] = useState(false);
     const [showDataSourcesModal, setShowDataSourcesModal] = useState(false);
@@ -70,15 +81,11 @@ function App() {
                 onSelectConversation={setCurrentConversationId}
                 onNewChat={clearChat}
                 currentConversationId={currentConversationId}
-                onOpenProfile={() => setShowProfile(true)}
                 onOpenDataSources={() => setShowDataSourcesModal(true)}
-                onLogout={handleLogout}
-                theme={theme}
-                onToggleTheme={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
             />
 
             <div className="flex-1 flex flex-col min-w-0">
-                <Header user={user} />
+                <Header user={user} onOpenProfile={() => setShowProfile(true)} onLogout={handleLogout} theme={theme} onToggleTheme={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')} />
 
                 {uploadStatus && <UploadStatusBar status={uploadStatus} />}
 
@@ -101,8 +108,6 @@ function App() {
                 isOpen={showDataSourcesModal}
                 onClose={() => setShowDataSourcesModal(false)}
                 onUploadStatusChange={setUploadStatus}
-                config={config}
-                onConfigChange={setConfig}
             />
         </div>
     );

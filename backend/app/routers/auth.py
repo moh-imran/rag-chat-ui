@@ -26,17 +26,22 @@ class Token(BaseModel):
     token_type: str
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+    import logging
+    logger = logging.getLogger(__name__)
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        logger.info(f"Validating token: {token[:20]}..." if token else "No token")
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         if email is None:
+            logger.warning("Token payload missing 'sub' field")
             raise credentials_exception
-    except JWTError:
+    except JWTError as e:
+        logger.error(f"JWT validation error: {e}")
         raise credentials_exception
     
     user = await User.find_one(User.email == email)
