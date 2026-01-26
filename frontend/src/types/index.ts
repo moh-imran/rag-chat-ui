@@ -3,7 +3,11 @@ export interface Message {
     content: string;
     sources?: Source[];
     error?: boolean;
-    timestamp?: string; // Changed to string for ISO dates from backend
+    timestamp?: string;
+    query_id?: string;
+    collections_queried?: string[];
+    feedback?: FeedbackData;
+    isStreaming?: boolean;
 }
 
 export interface Source {
@@ -13,6 +17,10 @@ export interface Source {
         filepath?: string;
         type?: string;
         chunk_id?: number;
+        collection?: string;
+        source?: string;
+        url?: string;
+        repo_url?: string;
     };
     score: number;
 }
@@ -21,6 +29,10 @@ export interface ChatConfig {
     topK: number;
     temperature: number;
     showSources: boolean;
+    useHyde?: boolean;
+    routingStrategy?: 'auto' | 'all' | 'specific';
+    selectedCollections?: string[];
+    metadataFilters?: Record<string, any>;
 }
 
 export interface QueryRequest {
@@ -32,6 +44,10 @@ export interface QueryRequest {
     score_threshold?: number;
     system_instruction?: string;
     max_tokens?: number;
+    use_hyde?: boolean;
+    metadata_filters?: Record<string, any>;
+    routing_strategy?: 'auto' | 'all' | 'specific';
+    specific_collections?: string[];
 }
 
 export interface QueryResponse {
@@ -39,6 +55,13 @@ export interface QueryResponse {
     context_used: boolean;
     conversation_id: string;
     sources?: Source[];
+    query_id?: string;
+    collections_queried?: string[];
+}
+
+export interface StreamEvent {
+    type: 'retrieval_start' | 'retrieval_complete' | 'generation_start' | 'token' | 'done' | 'error';
+    data: any;
 }
 
 export interface User {
@@ -61,4 +84,39 @@ export interface Conversation {
 export interface UploadStatus {
     type: 'loading' | 'success' | 'error';
     message: string;
+}
+
+export type DataSourceType = 'file' | 'web' | 'git' | 'notion' | 'database';
+
+export interface WebIngestionRequest {
+    url: string;
+    max_depth?: number;
+}
+
+export interface GitIngestionRequest {
+    repo_url: string;
+    branch?: string;
+    file_extensions?: string[];
+}
+
+export interface FeedbackData {
+    type: 'thumbs_up' | 'thumbs_down' | 'rating';
+    rating?: number;
+    comment?: string;
+    submitted?: boolean;
+}
+
+export interface FeedbackRequest {
+    query_id: string;
+    feedback_type: 'thumbs_up' | 'thumbs_down' | 'correction';
+    rating?: number;
+    comment?: string;
+    correction?: string;
+}
+
+export interface AdvancedOptions {
+    useHyde: boolean;
+    metadataFilters: Record<string, string>;
+    routingStrategy: 'auto' | 'all' | 'specific';
+    selectedCollections: string[];
 }

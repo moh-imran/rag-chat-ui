@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional, Any
 import logging
@@ -58,7 +59,7 @@ async def query_chat(
 ):
     if not _chat_service:
         raise HTTPException(status_code=503, detail="Chat service not initialized")
-    
+
     try:
         result = await _chat_service.query(
             question=request.question,
@@ -74,6 +75,44 @@ async def query_chat(
     except Exception as e:
         logger.error(f"Error in chat query: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/query/stream")
+async def query_chat_stream(
+    request: QueryRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Stream chat response with Server-Sent Events"""
+    logger.info(f"Stream query from user: {current_user.email}")
+    if not _chat_service:
+        raise HTTPException(status_code=503, detail="Chat service not initialized")
+
+    async def event_generator():
+        try:
+            async for event in _chat_service.query_stream(
+                question=request.question,
+                user=current_user,
+                conversation_id=request.conversation_id,
+                top_k=request.top_k,
+                temperature=request.temperature,
+                max_tokens=request.max_tokens or 1000,
+                system_instruction=request.system_instruction,
+                score_threshold=request.score_threshold
+            ):
+                yield event
+        except Exception as e:
+            logger.error(f"Error in streaming chat: {e}")
+            yield f"data: {{'event': 'error', 'error': '{str(e)}'}}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
 
 @router.get("/conversations", response_model=List[ConversationResponse])
 async def list_conversations(current_user: User = Depends(get_current_user)):
@@ -125,3 +164,20 @@ async def get_conversation_history(
             timestamp=m.timestamp.isoformat()
         ) for m in messages
     ]
+
+@router.delete("/conversations/{conv_id}")
+async def delete_conversation(
+    conv_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    conversation = await Conversation.get(conv_id)
+    if not conversation or conversation.user.ref.id != current_user.id:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    # Delete all messages associated with this conversation
+    await Message.find(Message.conversation.id == conversation.id).delete()
+    
+    # Delete the conversation itself
+    await conversation.delete()
+    
+    return {"status": "success", "message": "Conversation deleted"}

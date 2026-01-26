@@ -72,7 +72,7 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate }: Pr
                 </div>
 
                 <div className="flex border-b border-[var(--border-main)]">
-                    Broadway                    <button
+                    <button
                         onClick={() => { setActiveTab('profile'); setError(null); setSuccess(null); }}
                         className={`flex-1 py-4 text-sm font-medium transition-all ${activeTab === 'profile' ? 'text-[var(--accent-primary)] border-b-2 border-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                     >

@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Message, ChatConfig } from '../types';
-import { chatApi, conversationApi } from '../utils/api';
+import { Message, ChatConfig, FeedbackData } from '../types';
+import { conversationApi } from '../utils/api';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import EmptyState from './EmptyState';
+import { useStreaming } from '../hooks/useStreaming';
+import { StreamingIndicator } from './StreamingIndicator';
 
 interface ChatContainerProps {
     messages: Message[];
@@ -20,6 +22,7 @@ export default function ChatContainer({
     conversationId,
     onConversationIdChange
 }: ChatContainerProps) {
+    const { streamQuery, isStreaming, streamingContent, retrievalStatus, sources, queryId, conversationId: newConversationId, reset: resetStream } = useStreaming();
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -29,7 +32,7 @@ export default function ChatContainer({
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages]);
+    }, [messages, streamingContent, isStreaming]);
 
     useEffect(() => {
         if (conversationId) {
@@ -55,29 +58,19 @@ export default function ChatContainer({
 
         const updatedMessages = [...messages, userMessage];
         onMessagesChange(updatedMessages);
-        setLoading(true);
 
         try {
-            const response = await chatApi.query({
+            await streamQuery({
                 question: userInput,
                 conversation_id: conversationId,
                 top_k: config.topK,
                 temperature: config.temperature,
                 return_sources: config.showSources,
+                useHyde: config.useHyde,
+                routingStrategy: config.routingStrategy,
+                selectedCollections: config.selectedCollections,
+                metadataFilters: config.metadataFilters,
             });
-
-            if (!conversationId && response.conversation_id) {
-                onConversationIdChange(response.conversation_id);
-            }
-
-            const assistantMessage: Message = {
-                role: 'assistant',
-                content: response.answer,
-                sources: response.sources,
-                timestamp: new Date().toISOString(),
-            };
-
-            onMessagesChange([...updatedMessages, assistantMessage]);
         } catch (error: any) {
             const errorMessage: Message = {
                 role: 'assistant',
@@ -85,38 +78,81 @@ export default function ChatContainer({
                 error: true,
                 timestamp: new Date().toISOString(),
             };
-
             onMessagesChange([...updatedMessages, errorMessage]);
-        } finally {
-            setLoading(false);
         }
     };
+
+    // Effect to update conversation ID when a new one is received from streaming
+    useEffect(() => {
+        if (newConversationId && newConversationId !== conversationId) {
+            onConversationIdChange(newConversationId);
+        }
+    }, [newConversationId, conversationId, onConversationIdChange]);
+
+    // Effect to finalize streaming message
+    useEffect(() => {
+        if (!isStreaming && streamingContent && (queryId || newConversationId)) {
+            const assistantMessage: Message = {
+                role: 'assistant',
+                content: streamingContent,
+                sources: sources,
+                query_id: queryId,
+                timestamp: new Date().toISOString(),
+            };
+
+            onMessagesChange(prevMessages => [...prevMessages, assistantMessage]);
+            resetStream();
+        }
+    }, [isStreaming, queryId, newConversationId, resetStream, onMessagesChange, streamingContent, sources]);
+
+    const handleFeedbackSubmitted = (index: number, feedback: FeedbackData) => {
+        const newMessages = [...messages];
+        newMessages[index] = { ...newMessages[index], feedback };
+        onMessagesChange(newMessages);
+    };
+
+    // Only show streaming message when we have actual content
+    const streamingMessage: Message | null = (isStreaming && streamingContent) ? {
+        role: 'assistant',
+        content: streamingContent,
+        sources: sources,
+        query_id: queryId,
+        isStreaming: true,
+        timestamp: new Date().toISOString(),
+    } : null;
 
     return (
         <div className="flex-1 flex flex-col min-h-0 relative">
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto px-4 py-8 custom-scrollbar">
                 <div className="max-w-4xl mx-auto space-y-6">
-                    {messages.length === 0 ? (
+                    {messages.length === 0 && !isStreaming ? (
                         <EmptyState />
                     ) : (
                         <>
                             {messages.map((msg, idx) => (
-                                <ChatMessage key={idx} message={msg} showSources={config.showSources} />
+                                <ChatMessage
+                                    key={idx}
+                                    message={msg}
+                                    showSources={config.showSources}
+                                    messageIndex={idx}
+                                    onFeedbackSubmitted={handleFeedbackSubmitted}
+                                />
                             ))}
 
-                            {loading && (
-                                <div className="flex justify-start animate-in fade-in slide-in-from-left-4 duration-300">
-                                    <div className="glass-card rounded-2xl px-4 py-3 border border-[var(--border-main)]">
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex gap-1.5 px-2">
-                                                <div className="w-2 h-2 bg-[var(--accent-primary)] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                                                <div className="w-2 h-2 bg-[var(--accent-primary)] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                                                <div className="w-2 h-2 bg-[var(--accent-primary)] rounded-full animate-bounce"></div>
-                                            </div>
-                                            <span className="text-sm text-[var(--text-secondary)] font-medium">Thinking...</span>
-                                        </div>
-                                    </div>
+                            {streamingMessage && (
+                                <ChatMessage
+                                    message={streamingMessage}
+                                    showSources={config.showSources}
+                                />
+                            )}
+
+                            {isStreaming && !streamingContent && (
+                                <div className="flex justify-start">
+                                    <StreamingIndicator
+                                        status={retrievalStatus || 'Thinking...'}
+                                        isActive={true}
+                                    />
                                 </div>
                             )}
                         </>
@@ -130,7 +166,7 @@ export default function ChatContainer({
                 <div className="max-w-4xl mx-auto">
                     <ChatInput
                         onSend={handleSend}
-                        loading={loading}
+                        loading={isStreaming}
                     />
                 </div>
             </div>

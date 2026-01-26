@@ -1,5 +1,6 @@
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, AsyncGenerator
 import logging
+import json
 from .api_client import RagApiClient
 
 logger = logging.getLogger(__name__)
@@ -92,4 +93,77 @@ class ChatService:
             }
         except Exception as e:
             logger.error(f"Error in ChatService.query: {e}")
+            raise
+
+    async def query_stream(
+        self,
+        question: str,
+        user: Any,
+        conversation_id: Optional[str] = None,
+        top_k: int = 5,
+        temperature: float = 0.7,
+        max_tokens: int = 1000,
+        system_instruction: Optional[str] = None,
+        score_threshold: Optional[float] = None
+    ) -> AsyncGenerator[str, None]:
+        """Process chat query with streaming response"""
+        from ..models import Conversation, Message
+        from datetime import datetime
+
+        try:
+            # 1. Handle Conversation
+            if conversation_id:
+                conversation = await Conversation.get(conversation_id)
+                if not conversation or conversation.user.ref.id != user.id:
+                    raise ValueError("Conversation not found")
+                conversation.updated_at = datetime.utcnow()
+                await conversation.save()
+            else:
+                title = (question[:50] + '...') if len(question) > 50 else question
+                conversation = Conversation(title=title, user=user)
+                await conversation.insert()
+
+            # 2. Save User Message
+            user_msg = Message(
+                conversation=conversation,
+                role="user",
+                content=question
+            )
+            await user_msg.insert()
+
+            # 3. Send conversation_id first
+            yield f"data: {json.dumps({'event': 'conversation_id', 'conversation_id': str(conversation.id)})}\n\n"
+
+            # 4. Stream from RAG API and collect full answer
+            full_answer = ""
+            async for line in self.api_client.chat_query_stream(
+                question=question,
+                top_k=top_k,
+                score_threshold=score_threshold,
+                system_instruction=system_instruction,
+                max_tokens=max_tokens,
+                temperature=temperature
+            ):
+                yield line + "\n"
+                # Parse token events to build full answer
+                if line.startswith("data: "):
+                    try:
+                        event_data = json.loads(line[6:])
+                        # rag-qa-api sends {"type": "token", "data": {"content": "..."}}
+                        if event_data.get("type") == "token":
+                            full_answer += event_data.get("data", {}).get("content", "")
+                    except json.JSONDecodeError:
+                        pass
+
+            # 5. Save Assistant Message after streaming completes
+            if full_answer:
+                assistant_msg = Message(
+                    conversation=conversation,
+                    role="assistant",
+                    content=full_answer
+                )
+                await assistant_msg.insert()
+
+        except Exception as e:
+            logger.error(f"Error in ChatService.query_stream: {e}")
             raise

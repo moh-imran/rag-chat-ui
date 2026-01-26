@@ -8,6 +8,9 @@ class User(Document):
     hashed_password: str
     full_name: Optional[str] = None
     is_active: bool = True
+    is_admin: bool = False
+    role: str = "user"  # "user" | "admin" | "superadmin"
+    last_login: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     class Settings:
