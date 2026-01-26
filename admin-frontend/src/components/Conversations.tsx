@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { MessageSquare, Search, Eye, Trash2, Loader2, RefreshCw, User, Calendar } from 'lucide-react';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+import { adminApi } from '../utils/api';
 
 interface Conversation {
   id: string;
@@ -23,17 +21,25 @@ export default function Conversations({ token }: ConversationsProps) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
+  const [page, setPage] = useState(0);
+  const LIMIT = 10;
+
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
 
   const loadConversations = async () => {
     setLoading(true);
     setError('');
     try {
-      const api = axios.create({ baseURL: API_URL });
-      const res = await api.get('/chat/conversations', {
-        headers: { Authorization: `Bearer ${token}` },
-        params: { limit: 100 }
+      const skip = page * LIMIT;
+      const data = await adminApi.listConversations(token, {
+        limit: LIMIT,
+        skip: skip,
+        search: searchTerm
       });
-      setConversations(res.data.conversations || res.data.items || res.data || []);
+      // Handle both [item1, item2] and { items: [item1, item2], total: 10 }
+      setConversations(data.items || data || []);
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || 'Failed to load conversations');
     } finally {
@@ -41,15 +47,30 @@ export default function Conversations({ token }: ConversationsProps) {
     }
   };
 
+  const viewConversation = async (conv: Conversation) => {
+    setSelectedConversation(conv);
+    setMessagesLoading(true);
+    try {
+      const data = await adminApi.getConversationMessages(token, conv.id);
+      setMessages(data || []);
+    } catch (err: any) {
+      alert('Failed to load messages');
+    } finally {
+      setMessagesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(0);
+      loadConversations();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   useEffect(() => {
     loadConversations();
-  }, [token]);
-
-  const filteredConversations = conversations.filter(conv =>
-    conv.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    conv.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    conv.id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  }, [page, token]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -83,7 +104,7 @@ export default function Conversations({ token }: ConversationsProps) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-secondary)]" />
           <input
             type="text"
-            placeholder="Search by user email, title, or ID..."
+            placeholder="Search by title..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-white/5 border border-[var(--border-main)] rounded-lg pl-10 pr-4 py-2 text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50"
@@ -98,19 +119,19 @@ export default function Conversations({ token }: ConversationsProps) {
       )}
 
       <div className="glass-panel rounded-xl overflow-hidden">
-        {loading ? (
+        {loading && conversations.length === 0 ? (
           <div className="p-8 flex flex-col items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-[var(--accent-primary)] mb-2" />
             <p className="text-sm text-[var(--text-secondary)]">Loading conversations...</p>
           </div>
-        ) : filteredConversations.length === 0 ? (
+        ) : conversations.length === 0 ? (
           <div className="p-8 text-center">
             <MessageSquare className="w-12 h-12 text-[var(--text-secondary)] mx-auto mb-3 opacity-50" />
             <p className="text-[var(--text-secondary)]">No conversations found</p>
           </div>
         ) : (
           <div className="divide-y divide-[var(--border-main)]">
-            {filteredConversations.map((conv) => (
+            {conversations.map((conv) => (
               <div key={conv.id} className="p-4 hover:bg-white/5 transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -141,7 +162,7 @@ export default function Conversations({ token }: ConversationsProps) {
                   </div>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => alert(`View conversation ${conv.id}`)}
+                      onClick={() => viewConversation(conv)}
                       className="p-2 rounded-lg text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 transition-colors"
                       title="View conversation"
                     >
@@ -149,8 +170,8 @@ export default function Conversations({ token }: ConversationsProps) {
                     </button>
                     <button
                       onClick={() => {
-                        if (confirm('Delete this conversation?')) {
-                          alert('Delete functionality pending');
+                        if (confirm('Delete this conversation? (Caution: Database action required elsewhere)')) {
+                          alert('Delete functionality should be implemented in admin router first if needed.');
                         }
                       }}
                       className="p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors"
@@ -164,11 +185,78 @@ export default function Conversations({ token }: ConversationsProps) {
             ))}
           </div>
         )}
+
+        {/* Pagination Controls */}
+        <div className="p-4 border-t border-[var(--border-main)] flex items-center justify-between">
+          <button
+            onClick={() => setPage(p => Math.max(0, p - 1))}
+            disabled={page === 0 || loading}
+            className="px-3 py-1 text-sm bg-white/5 hover:bg-white/10 rounded-lg disabled:opacity-50 transition-colors"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-[var(--text-secondary)]">Page {page + 1}</span>
+          <button
+            onClick={() => setPage(p => p + 1)}
+            disabled={conversations.length < LIMIT || loading}
+            className="px-3 py-1 text-sm bg-white/5 hover:bg-white/10 rounded-lg disabled:opacity-50 transition-colors"
+          >
+            Next
+          </button>
+        </div>
       </div>
 
-      <div className="glass-panel p-4 rounded-xl text-sm text-[var(--text-secondary)]">
-        <p>Showing {filteredConversations.length} of {conversations.length} conversations</p>
-      </div>
+      {/* Conversation Detail Modal */}
+      {selectedConversation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border-main)] rounded-2xl w-full max-w-4xl h-[80vh] flex flex-col shadow-2xl relative overflow-hidden">
+            <div className="p-6 border-b border-[var(--border-main)] flex justify-between items-start">
+              <div>
+                <h3 className="font-bold text-xl text-[var(--text-primary)]">
+                  {selectedConversation.title || 'Conversation Detail'}
+                </h3>
+                <p className="text-sm text-[var(--text-secondary)] mt-1">
+                  User: {selectedConversation.user_email} • {messages.length} messages
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedConversation(null)}
+                className="p-2 hover:bg-white/5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar bg-black/20">
+              {messagesLoading ? (
+                <div className="h-full flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-[var(--accent-primary)]" />
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-[var(--text-secondary)] opacity-50">
+                  <MessageSquare className="w-12 h-12 mb-2" />
+                  <p>No messages in this conversation</p>
+                </div>
+              ) : (
+                messages.map((msg, idx) => (
+                  <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === 'user'
+                      ? 'bg-[var(--accent-primary)]/20 border border-[var(--accent-primary)]/30 text-[var(--text-primary)]'
+                      : 'bg-white/5 border border-[var(--border-main)] text-[var(--text-primary)]'
+                      }`}>
+                      <div className="text-[10px] uppercase tracking-wider font-bold mb-1 opacity-50">
+                        {msg.role} • {new Date(msg.timestamp).toLocaleTimeString()}
+                      </div>
+                      <div className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

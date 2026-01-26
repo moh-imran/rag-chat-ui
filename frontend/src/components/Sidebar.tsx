@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MessageSquare, Plus, Loader2, Database, Trash2 } from 'lucide-react';
+import { MessageSquare, Plus, Loader2, Database, Trash2, Inbox } from 'lucide-react';
 import { conversationApi } from '../utils/api';
 import { Conversation } from '../types';
 
@@ -8,21 +8,34 @@ interface SidebarProps {
     onNewChat: () => void;
     currentConversationId?: string;
     onOpenDataSources: () => void;
+    onOpenIntegrations: () => void;
 }
 
 export default function Sidebar({
     onSelectConversation,
     onNewChat,
     currentConversationId,
-    onOpenDataSources
+    onOpenDataSources,
+    onOpenIntegrations
 }: SidebarProps) {
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [loading, setLoading] = useState(true);
+    const [prevConversationsLength, setPrevConversationsLength] = useState(0);
 
     const loadConversations = async () => {
         try {
             const data = await conversationApi.list();
             setConversations(data);
+
+            // If we have more conversations than before, and it wasn't the initial load
+            if (data.length > prevConversationsLength && prevConversationsLength > 0 && !loading) {
+                // Find the new conversation (assuming it's at the top due to sorting)
+                const newConv = data[0];
+                if (newConv && newConv.id !== currentConversationId) {
+                    onSelectConversation(newConv.id);
+                }
+            }
+            setPrevConversationsLength(data.length);
         } catch (error) {
             console.error('Failed to load conversations', error);
         } finally {
@@ -135,6 +148,16 @@ export default function Sidebar({
                     <div className="flex items-center gap-3">
                         <Database className="w-4 h-4 group-hover:scale-110 transition-transform" />
                         <span className="text-sm font-medium">Data Sources</span>
+                    </div>
+                </button>
+
+                <button
+                    onClick={onOpenIntegrations}
+                    className="w-full flex items-center justify-between px-3 py-2 text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-white/5 rounded-lg transition-all group"
+                >
+                    <div className="flex items-center gap-3">
+                        <Inbox className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                        <span className="text-sm font-medium">Integrations</span>
                     </div>
                 </button>
 

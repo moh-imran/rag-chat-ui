@@ -3,6 +3,7 @@ import { FeedbackButtons } from './FeedbackButtons';
 import { SourceBadge } from './SourceBadge';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { useState } from 'react';
+import { Copy, Check } from 'lucide-react';
 
 interface ChatMessageProps {
     message: Message;
@@ -13,6 +14,17 @@ interface ChatMessageProps {
 
 export default function ChatMessage({ message, showSources, onFeedbackSubmitted, messageIndex }: ChatMessageProps) {
     const [showQueryId, setShowQueryId] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    const handleCopyContent = async () => {
+        try {
+            await navigator.clipboard.writeText(message.content);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy', err);
+        }
+    };
 
     const copyQueryId = () => {
         if (message.query_id) {
@@ -27,14 +39,23 @@ export default function ChatMessage({ message, showSources, onFeedbackSubmitted,
             <div className={`max-w-3xl ${message.role === 'user' ? 'ml-12' : 'mr-12'}`}>
                 <div
                     className={`rounded-2xl px-4 py-3 shadow-lg transition-all duration-300 ${message.role === 'user'
-                            ? 'bg-[var(--accent-primary)] text-white shadow-lg'
-                            : message.error
-                                ? 'bg-red-500/10 text-red-500 border border-red-500/20'
-                                : 'glass-card text-[var(--text-primary)] border-[var(--border-main)]'
+                        ? 'bg-[var(--accent-primary)] text-white shadow-lg'
+                        : message.error
+                            ? 'bg-red-500/10 text-red-500 border border-red-500/20'
+                            : 'glass-card text-[var(--text-primary)] border-[var(--border-main)]'
                         }`}
                 >
                     {message.role === 'user' ? (
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap select-text cursor-text chat-message-content">{message.content}</p>
+                        <div className="relative group">
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap select-text cursor-text chat-message-content pr-6">{message.content}</p>
+                            <button
+                                onClick={handleCopyContent}
+                                className="absolute top-0 right-[-10px] p-1.5 rounded-full hover:bg-white/20 opacity-0 group-hover:opacity-100 transition-all text-white/80 hover:text-white"
+                                title="Copy message"
+                            >
+                                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                        </div>
                     ) : (
                         <div className="text-sm leading-relaxed select-text chat-message-content">
                             <MarkdownRenderer content={message.content} />
@@ -80,15 +101,25 @@ export default function ChatMessage({ message, showSources, onFeedbackSubmitted,
                 {/* Feedback and Query ID (for assistant messages only) */}
                 {message.role === 'assistant' && !message.error && (
                     <div className="mt-3 pt-2 border-t border-gray-200/10 flex items-center justify-between gap-4">
-                        <FeedbackButtons
-                            queryId={message.query_id}
-                            initialFeedback={message.feedback}
-                            onFeedbackSubmitted={(feedback) => {
-                                if (messageIndex !== undefined && onFeedbackSubmitted) {
-                                    onFeedbackSubmitted(messageIndex, feedback);
-                                }
-                            }}
-                        />
+                        <div className="flex items-center gap-2">
+                            <FeedbackButtons
+                                queryId={message.query_id}
+                                initialFeedback={message.feedback}
+                                onFeedbackSubmitted={(feedback) => {
+                                    if (messageIndex !== undefined && onFeedbackSubmitted) {
+                                        onFeedbackSubmitted(messageIndex, feedback);
+                                    }
+                                }}
+                            />
+                            {/* Copy button grouped with feedback */}
+                            <button
+                                onClick={handleCopyContent}
+                                className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-[var(--accent-primary)] hover:bg-white/5 rounded-full transition-all"
+                                title="Copy response"
+                            >
+                                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                        </div>
 
                         {message.query_id && (
                             <button

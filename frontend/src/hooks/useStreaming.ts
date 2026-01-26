@@ -43,6 +43,14 @@ export const useStreaming = () => {
                             }));
                             break;
 
+                        case 'query_id':
+                            const qId = (event as any).query_id || event.data?.query_id;
+                            setState(prev => ({
+                                ...prev,
+                                queryId: qId,
+                            }));
+                            break;
+
                         case 'retrieval_start':
                             setState(prev => ({
                                 ...prev,

@@ -229,7 +229,8 @@ async def get_dashboard_stats():
         "failed": 0
     }
     try:
-        client = RagApiClient()
+        rag_api_url = os.getenv("RAG_API_URL", "http://localhost:8000")
+        client = RagApiClient(base_url=rag_api_url)
         jobs = await client.list_ingest_jobs()
         etl_stats["total_jobs"] = len(jobs)
         for job in jobs:
@@ -407,7 +408,8 @@ async def get_system_health():
 async def get_all_integrations():
     """Get all integrations across all users (admin view)."""
     try:
-        client = RagApiClient()
+        rag_api_url = os.getenv("RAG_API_URL", "http://localhost:8000")
+        client = RagApiClient(base_url=rag_api_url)
         integrations = await client.list_integrations()
         return {"integrations": integrations}
     except Exception as e:
@@ -422,7 +424,8 @@ async def get_all_etl_jobs(
 ):
     """Get all ETL jobs with filtering and pagination."""
     try:
-        client = RagApiClient()
+        rag_api_url = os.getenv("RAG_API_URL", "http://localhost:8000")
+        client = RagApiClient(base_url=rag_api_url)
         all_jobs = await client.list_ingest_jobs()
 
         # Filter by status if provided
@@ -482,3 +485,99 @@ async def get_recent_activity(limit: int = Query(50, ge=1, le=100)):
     activity.sort(key=lambda x: x["timestamp"], reverse=True)
 
     return {"activity": activity[:limit]}
+
+
+@router.get("/conversations", response_model=Dict[str, Any])
+async def list_all_conversations(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    search: Optional[str] = None
+):
+    """List all conversations with user details for admin view."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    query = {}
+    if search:
+        query["title"] = {"$regex": search, "$options": "i"}
+
+    try:
+        # Get total count for pagination
+        total = await Conversation.find(query).count()
+        
+        # Get paginated data
+        conversations = await Conversation.find(query).sort(-Conversation.updated_at).skip(skip).limit(limit).to_list()
+        
+        result = []
+        for conv in conversations:
+            try:
+                # Basic info
+                conv_data = {
+                    "id": str(conv.id),
+                    "title": conv.title or "Untitled Conversation",
+                    "created_at": conv.created_at.isoformat() if conv.created_at else None,
+                    "updated_at": conv.updated_at.isoformat() if conv.updated_at else None,
+                    "message_count": 0,
+                    "user_id": "unknown",
+                    "user_email": "Unknown"
+                }
+                
+                # Fetch user link safely
+                try:
+                    await conv.fetch_link("user")
+                    if conv.user and hasattr(conv.user, 'email'):
+                         conv_data["user_email"] = conv.user.email
+                         conv_data["user_id"] = str(conv.user.id)
+                except Exception:
+                    pass
+                
+                # Fetch message count (Beanie style)
+                try:
+                    conv_data["message_count"] = await Message.find(Message.conversation.id == conv.id).count()
+                except Exception:
+                    # Fallback to direct mongo link format
+                    conv_data["message_count"] = await Message.find({"conversation.$id": conv.id}).count()
+                
+                result.append(conv_data)
+                
+            except Exception as e:
+                logger.error(f"Error processing individual conversation {conv.id}: {e}")
+                continue
+
+        return {
+            "total": total,
+            "items": result,
+            "skip": skip,
+            "limit": limit
+        }
+    except Exception as e:
+        logger.error(f"Critical error in list_all_conversations: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/conversations/{conv_id}/messages", response_model=List[Dict[str, Any]])
+async def get_conversation_messages(conv_id: str):
+    """Get all messages for a specific conversation (Admin view)."""
+    conversation = await Conversation.get(conv_id)
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    messages = await Message.find(Message.conversation.id == conversation.id).sort(Message.timestamp).to_list()
+    return [
+        {
+            "role": m.role,
+            "content": m.content,
+            "timestamp": m.timestamp.isoformat()
+        } for m in messages
+    ]
+
+
+@router.get("/feedback")
+async def get_all_feedback():
+    """Get all user feedback from rag-qa-api."""
+    try:
+        rag_api_url = os.getenv("RAG_API_URL", "http://localhost:8000")
+        client = RagApiClient(base_url=rag_api_url)
+        return await client.get_all_feedback()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch feedback: {str(e)}")

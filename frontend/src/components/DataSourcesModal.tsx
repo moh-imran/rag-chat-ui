@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Upload, FileText, Loader2, Trash2, Database, Globe, Github, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Upload, FileText, Loader2, Trash2, Database, Globe, Github, CheckCircle, AlertCircle, RotateCw } from 'lucide-react';
 import { chatApi } from '../utils/api';
 import { UploadStatus } from '../types';
 
@@ -102,7 +102,7 @@ export default function DataSourcesModal({
     const loadJobs = async () => {
         try {
             const res = await chatApi.ingestListJobs();
-            setJobs(res.jobs || []);
+            setJobs((res.jobs || []).slice(0, 5));
         } catch (e) {
             console.warn('Failed to load jobs', e);
         }
@@ -170,7 +170,7 @@ export default function DataSourcesModal({
                 // update local jobs list
                 setJobs(prev => {
                     const others = prev.filter(j => j.job_id !== pollingJobId);
-                    return [status, ...others].slice(0, 50);
+                    return [status, ...others].slice(0, 5);
                 });
 
                 if (status.status === 'completed') {
@@ -232,7 +232,7 @@ export default function DataSourcesModal({
             // Check if it returned a job_id (async processing)
             if (data.job_id) {
                 setPollingJobId(data.job_id);
-                setJobs(prev => [{ job_id: data.job_id, status: 'running', progress: 0, meta: { source_type: 'file', filename: file.name } }, ...prev].slice(0, 50));
+                setJobs(prev => [{ job_id: data.job_id, status: 'running', progress: 0, meta: { source_type: 'file', filename: file.name } }, ...prev].slice(0, 5));
                 setStatus({
                     type: 'success',
                     message: `📤 File uploaded! Processing: ${file.name}`,
@@ -266,7 +266,7 @@ export default function DataSourcesModal({
             // Use async submit endpoint for web ingestion
             const res = await chatApi.ingestSubmit({ source_type: 'web', source_params: { url: webUrl, max_depth: maxDepth } });
             setPollingJobId(res.job_id);
-            setJobs(prev => [{ job_id: res.job_id, status: 'running', progress: 0, meta: { source_type: 'web', url: webUrl } }, ...prev].slice(0, 50));
+            setJobs(prev => [{ job_id: res.job_id, status: 'running', progress: 0, meta: { source_type: 'web', url: webUrl } }, ...prev].slice(0, 5));
             setStatus({
                 type: 'success',
                 message: `🌐 Web crawl started! Job: ${res.job_id.slice(0, 8)}...`,
@@ -292,7 +292,7 @@ export default function DataSourcesModal({
             // Use async submit endpoint for git ingestion
             const res = await chatApi.ingestSubmit({ source_type: 'git', source_params: { repo_url: repoUrl, branch } });
             setPollingJobId(res.job_id);
-            setJobs(prev => [{ job_id: res.job_id, status: 'running', progress: 0, meta: { source_type: 'git', repo_url: repoUrl } }, ...prev].slice(0, 50));
+            setJobs(prev => [{ job_id: res.job_id, status: 'running', progress: 0, meta: { source_type: 'git', repo_url: repoUrl } }, ...prev].slice(0, 5));
             setStatus({
                 type: 'success',
                 message: `📦 Git clone started! Job: ${res.job_id.slice(0, 8)}...`,
@@ -347,416 +347,419 @@ export default function DataSourcesModal({
 
                     <div className="space-y-6">
                         <div className="space-y-3">
-                                {/* Basic Sources Row */}
-                                <div>
-                                    <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2">Basic Sources</p>
-                                    <div className="flex p-1 bg-[var(--bg-neutral)] rounded-lg gap-1 border border-[var(--border-main)]">
-                                        <button
-                                            onClick={() => setIngestType('file')}
-                                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold rounded-md transition-all ${ingestType === 'file' ? 'bg-[var(--accent-primary)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-neutral)]'}`}
-                                        >
-                                            <FileText className="w-4 h-4" />
-                                            Files
-                                        </button>
-                                        <button
-                                            onClick={() => setIngestType('web')}
-                                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold rounded-md transition-all ${ingestType === 'web' ? 'bg-[var(--accent-primary)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-neutral)]'}`}
-                                        >
-                                            <Globe className="w-4 h-4" />
-                                            Web
-                                        </button>
-                                        <button
-                                            onClick={() => setIngestType('git')}
-                                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold rounded-md transition-all ${ingestType === 'git' ? 'bg-[var(--accent-primary)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-neutral)]'}`}
-                                        >
-                                            <Github className="w-4 h-4" />
-                                            Git
-                                        </button>
-                                    </div>
-                                </div>
-                                {/* Enterprise Sources Row */}
-                                <div>
-                                    <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2">Enterprise Sources</p>
-                                    <div className="flex p-1 bg-[var(--bg-neutral)] rounded-lg gap-1 border border-[var(--border-main)]">
-                                        <button
-                                            onClick={() => setIngestType('notion')}
-                                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold rounded-md transition-all ${ingestType === 'notion' ? 'bg-[var(--accent-primary)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-neutral)]'}`}
-                                        >
-                                            <FileText className="w-4 h-4" />
-                                            Notion
-                                        </button>
-                                        <button
-                                            onClick={() => setIngestType('database')}
-                                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold rounded-md transition-all ${ingestType === 'database' ? 'bg-[var(--accent-primary)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-neutral)]'}`}
-                                        >
-                                            <Database className="w-4 h-4" />
-                                            Database
-                                        </button>
-                                        <button
-                                            onClick={() => setIngestType('confluence')}
-                                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold rounded-md transition-all ${ingestType === 'confluence' ? 'bg-[var(--accent-primary)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-neutral)]'}`}
-                                        >
-                                            <FileText className="w-4 h-4" />
-                                            Confluence
-                                        </button>
-                                        <button
-                                            onClick={() => setIngestType('sharepoint')}
-                                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold rounded-md transition-all ${ingestType === 'sharepoint' ? 'bg-[var(--accent-primary)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-neutral)]'}`}
-                                        >
-                                            <Database className="w-4 h-4" />
-                                            SharePoint
-                                        </button>
-                                    </div>
+                            {/* Basic Sources Row */}
+                            <div>
+                                <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2">Basic Sources</p>
+                                <div className="flex p-1 bg-[var(--bg-neutral)] rounded-lg gap-1 border border-[var(--border-main)]">
+                                    <button
+                                        onClick={() => setIngestType('file')}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold rounded-md transition-all ${ingestType === 'file' ? 'bg-[var(--accent-primary)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-neutral)]'}`}
+                                    >
+                                        <FileText className="w-4 h-4" />
+                                        Files
+                                    </button>
+                                    <button
+                                        onClick={() => setIngestType('web')}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold rounded-md transition-all ${ingestType === 'web' ? 'bg-[var(--accent-primary)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-neutral)]'}`}
+                                    >
+                                        <Globe className="w-4 h-4" />
+                                        Web
+                                    </button>
+                                    <button
+                                        onClick={() => setIngestType('git')}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold rounded-md transition-all ${ingestType === 'git' ? 'bg-[var(--accent-primary)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-neutral)]'}`}
+                                    >
+                                        <Github className="w-4 h-4" />
+                                        Git
+                                    </button>
                                 </div>
                             </div>
-
-                            {ingestType === 'file' && (
-                                <div className="space-y-4">
-                                    {!selectedFile ? (
-                                        <div
-                                            onDragEnter={handleDrag}
-                                            onDragLeave={handleDrag}
-                                            onDragOver={handleDrag}
-                                            onDrop={handleDrop}
-                                            onClick={() => fileInputRef.current?.click()}
-                                            className={`relative border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center gap-4 transition-all cursor-pointer group ${dragActive ? 'border-[#00f2ff] bg-[#00f2ff]/5 scale-[1.02]' : 'border-white/10 hover:border-white/20 hover:bg-white/5'}`}
-                                        >
-                                            <div className={`p-4 rounded-full transition-all ${dragActive ? 'bg-[#00f2ff]/20 text-[#00f2ff] scale-110' : 'bg-white/5 text-slate-500 group-hover:text-slate-400 group-hover:scale-110'}`}>
-                                                <Upload className="w-8 h-8" />
-                                            </div>
-                                            <div className="text-center">
-                                                <p className="text-sm font-semibold text-[var(--text-primary)]">Click to upload or drag and drop</p>
-                                                <p className="text-xs text-[var(--text-secondary)] mt-1">PDF, TXT, DOCX, or MD (max 10MB)</p>
-                                            </div>
-                                            <input
-                                                ref={fileInputRef}
-                                                type="file"
-                                                accept=".pdf,.txt,.docx,.md"
-                                                onChange={(e) => e.target.files?.[0] && setSelectedFile(e.target.files[0])}
-                                                className="hidden"
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div className="p-4 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] flex items-center gap-4">
-                                            <div className="p-3 bg-[var(--accent-secondary)]/20 rounded-lg text-[var(--accent-secondary)]">
-                                                <FileText className="w-6 h-6" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium text-[var(--text-primary)] truncate">{selectedFile.name}</p>
-                                                <p className="text-xs text-[var(--text-secondary)]">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                                            </div>
-                                            <button
-                                                onClick={() => setSelectedFile(null)}
-                                                className="p-2 text-[var(--text-secondary)] hover:text-red-400 transition-colors"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    )}
-
+                            {/* Enterprise Sources Row */}
+                            <div>
+                                <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2">Enterprise Sources</p>
+                                <div className="flex p-1 bg-[var(--bg-neutral)] rounded-lg gap-1 border border-[var(--border-main)]">
                                     <button
-                                        disabled={!selectedFile || uploading}
-                                        onClick={() => selectedFile && handleFileUpload(selectedFile)}
-                                        className="w-full bg-[var(--accent-primary)] hover:brightness-110 disabled:opacity-30 text-white rounded-lg py-3 font-semibold transition-all shadow-lg flex items-center justify-center gap-2"
+                                        onClick={() => setIngestType('notion')}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold rounded-md transition-all ${ingestType === 'notion' ? 'bg-[var(--accent-primary)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-neutral)]'}`}
                                     >
-                                        {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Start Ingestion'}
+                                        <FileText className="w-4 h-4" />
+                                        Notion
                                     </button>
-                                </div>
-                            )}
-
-                            {ingestType === 'web' && (
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Website URL</label>
-                                        <input
-                                            type="url"
-                                            placeholder="https://docs.example.com"
-                                            value={webUrl}
-                                            onChange={(e) => setWebUrl(e.target.value)}
-                                            className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between items-center">
-                                            <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Crawl Depth</label>
-                                            <span className="text-xs font-mono text-[var(--accent-primary)]">{maxDepth}</span>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max="3"
-                                            value={maxDepth}
-                                            onChange={(e) => setMaxDepth(parseInt(e.target.value))}
-                                            className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[var(--accent-primary)]"
-                                        />
-                                    </div>
                                     <button
-                                        disabled={!webUrl || uploading}
-                                        onClick={handleWebIngest}
-                                        className="w-full bg-[var(--accent-primary)] hover:brightness-110 disabled:opacity-30 text-white rounded-lg py-3 font-semibold transition-all shadow-lg flex items-center justify-center gap-2"
+                                        onClick={() => setIngestType('database')}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold rounded-md transition-all ${ingestType === 'database' ? 'bg-[var(--accent-primary)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-neutral)]'}`}
                                     >
-                                        {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Crawl & Index'}
+                                        <Database className="w-4 h-4" />
+                                        Database
                                     </button>
-                                </div>
-                            )}
-
-                            {ingestType === 'git' && (
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Repository URL</label>
-                                        <input
-                                            type="url"
-                                            placeholder="https://github.com/user/repo"
-                                            value={repoUrl}
-                                            onChange={(e) => setRepoUrl(e.target.value)}
-                                            className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Branch</label>
-                                        <input
-                                            type="text"
-                                            placeholder="main"
-                                            value={branch}
-                                            onChange={(e) => setBranch(e.target.value)}
-                                            className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none"
-                                        />
-                                    </div>
                                     <button
-                                        disabled={!repoUrl || uploading}
-                                        onClick={handleGitIngest}
-                                        className="w-full bg-[var(--accent-primary)] hover:brightness-110 disabled:opacity-30 text-white rounded-lg py-3 font-semibold transition-all shadow-lg flex items-center justify-center gap-2"
+                                        onClick={() => setIngestType('confluence')}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold rounded-md transition-all ${ingestType === 'confluence' ? 'bg-[var(--accent-primary)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-neutral)]'}`}
                                     >
-                                        {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Clone & Ingest'}
+                                        <FileText className="w-4 h-4" />
+                                        Confluence
                                     </button>
-                                </div>
-                            )}
-
-                            {ingestType === 'notion' && (
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Notion API Key</label>
-                                        <input
-                                            type="password"
-                                            placeholder="secret_integration_token"
-                                            value={notionApiKey}
-                                            onChange={(e) => setNotionApiKey(e.target.value)}
-                                            className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Database ID (optional)</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Notion database id"
-                                            value={notionDatabaseId}
-                                            onChange={(e) => setNotionDatabaseId(e.target.value)}
-                                            className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none"
-                                        />
-                                    </div>
                                     <button
-                                        disabled={!notionApiKey || uploading}
-                                        onClick={async () => {
-                                            setUploading(true);
-                                            setStatus({ type: 'loading', message: 'Ingesting Notion...' });
-                                            try {
-                                                await chatApi.ingestNotion({ api_key: notionApiKey, database_id: notionDatabaseId });
-                                                setStatus({ type: 'success', message: '✅ Notion ingestion started' });
-                                                setNotionApiKey('');
-                                                setNotionDatabaseId('');
-                                            } catch (error) {
-                                                setStatus({ type: 'error', message: `❌ ${error instanceof Error ? error.message : 'Notion ingestion failed'}` });
-                                            } finally {
-                                                setUploading(false);
-                                                // Error messages now persist until user dismisses them
-                                            }
-                                        }}
-                                        className="w-full bg-[var(--accent-primary)] hover:brightness-110 disabled:opacity-30 text-white rounded-lg py-3 font-semibold transition-all shadow-lg flex items-center justify-center gap-2"
+                                        onClick={() => setIngestType('sharepoint')}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold rounded-md transition-all ${ingestType === 'sharepoint' ? 'bg-[var(--accent-primary)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-neutral)]'}`}
                                     >
-                                        {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Ingest Notion'}
+                                        <Database className="w-4 h-4" />
+                                        SharePoint
                                     </button>
-                                </div>
-                            )}
-
-                            {ingestType === 'confluence' && (
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Confluence Base URL</label>
-                                        <input type="url" placeholder="https://your-domain.atlassian.net/wiki" value={confBaseUrl} onChange={(e) => setConfBaseUrl(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <input type="email" placeholder="user@example.com" value={confEmail} onChange={(e) => setConfEmail(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
-                                        <input type="password" placeholder="api token" value={confApiToken} onChange={(e) => setConfApiToken(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <select value={selectedConfluenceIntegration || ''} onChange={(e) => setSelectedConfluenceIntegration(e.target.value || null)} className="bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] rounded px-3 py-2 text-sm">
-                                            <option value="">-- Use saved integration --</option>
-                                            {integrations.filter(i => i.type === 'confluence').map(i => (
-                                                <option key={i.id} value={i.id}>{i.name}</option>
-                                            ))}
-                                        </select>
-                                        <button onClick={() => loadIntegrations()} className="px-3 py-2 text-xs text-[var(--accent-primary)]">Refresh</button>
-                                    </div>
-                                    <button disabled={(!confBaseUrl && !selectedConfluenceIntegration) || (!confEmail && !selectedConfluenceIntegration && !confApiToken) || uploading} onClick={async () => {
-                                        setUploading(true);
-                                        setStatus({ type: 'loading', message: 'Submitting Confluence ingest...' });
-                                            try {
-                                                const source_params: any = {};
-                                                if (selectedConfluenceIntegration) {
-                                                    source_params['integration_id'] = selectedConfluenceIntegration;
-                                                } else {
-                                                    source_params['base_url'] = confBaseUrl;
-                                                    source_params['email'] = confEmail;
-                                                    source_params['api_token'] = confApiToken;
-                                                }
-                                                const res = await chatApi.ingestSubmit({ source_type: 'confluence', source_params });
-                                                setStatus({ type: 'success', message: `Job submitted: ${res.job_id}` });
-                                                setPollingJobId(res.job_id);
-                                                // update jobs list
-                                                setJobs(prev => [{ job_id: res.job_id, status: 'running', progress: 0, meta: { source_type: 'confluence' } }, ...prev].slice(0, 50));
-                                                setConfBaseUrl(''); setConfEmail(''); setConfApiToken('');
-                                        } catch (error) {
-                                            setStatus({ type: 'error', message: `❌ ${error instanceof Error ? error.message : 'Confluence ingest failed'}` });
-                                        } finally {
-                                            setUploading(false);
-                                            // Error messages now persist until user dismisses them
-                                        }
-                                    }} className="w-full bg-[var(--accent-primary)] hover:brightness-110 disabled:opacity-30 text-white rounded-lg py-3 font-semibold transition-all shadow-lg flex items-center justify-center gap-2">{uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Submit Confluence Ingest'}</button>
-                                </div>
-                            )}
-
-                            {ingestType === 'sharepoint' && (
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">SharePoint Site ID</label>
-                                        <input type="text" placeholder="{tenant}.sharepoint.com,site-id" value={spSiteId} onChange={(e) => setSpSiteId(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Access Token</label>
-                                        <input type="password" placeholder="OAuth access token" value={spAccessToken} onChange={(e) => setSpAccessToken(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <select value={selectedSharepointIntegration || ''} onChange={(e) => setSelectedSharepointIntegration(e.target.value || null)} className="bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] rounded px-3 py-2 text-sm">
-                                            <option value="">-- Use saved integration --</option>
-                                            {integrations.filter(i => i.type === 'sharepoint').map(i => (
-                                                <option key={i.id} value={i.id}>{i.name}</option>
-                                            ))}
-                                        </select>
-                                        <button onClick={() => loadIntegrations()} className="px-3 py-2 text-xs text-[var(--accent-primary)]">Refresh</button>
-                                    </div>
-                                    <button disabled={(!spSiteId && !selectedSharepointIntegration) || (!spAccessToken && !selectedSharepointIntegration) || uploading} onClick={async () => {
-                                        setUploading(true);
-                                        setStatus({ type: 'loading', message: 'Submitting SharePoint ingest...' });
-                                            try {
-                                                const source_params: any = {};
-                                                if (selectedSharepointIntegration) {
-                                                    source_params['integration_id'] = selectedSharepointIntegration;
-                                                } else {
-                                                    source_params['site_id'] = spSiteId;
-                                                    source_params['access_token'] = spAccessToken;
-                                                }
-                                                const res = await chatApi.ingestSubmit({ source_type: 'sharepoint', source_params });
-                                                setStatus({ type: 'success', message: `Job submitted: ${res.job_id}` });
-                                                setPollingJobId(res.job_id);
-                                                setJobs(prev => [{ job_id: res.job_id, status: 'running', progress: 0, meta: { source_type: 'sharepoint' } }, ...prev].slice(0, 50));
-                                                setSpSiteId(''); setSpAccessToken(''); setSelectedSharepointIntegration(null);
-                                        } catch (error) {
-                                            setStatus({ type: 'error', message: `❌ ${error instanceof Error ? error.message : 'SharePoint ingest failed'}` });
-                                        } finally {
-                                            setUploading(false);
-                                            // Error messages now persist until user dismisses them
-                                        }
-                                    }} className="w-full bg-[var(--accent-primary)] hover:brightness-110 disabled:opacity-30 text-white rounded-lg py-3 font-semibold transition-all shadow-lg flex items-center justify-center gap-2">{uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Submit SharePoint Ingest'}</button>
-                                </div>
-                            )}
-
-                            {/* Job history panel */}
-                            <div className="pt-6 border-t border-[var(--border-main)]">
-                                <div className="flex items-center justify-between mb-3">
-                                    <p className="text-sm font-semibold text-[var(--text-primary)]">Ingest Jobs</p>
-                                    <button onClick={loadJobs} className="text-xs text-[var(--accent-primary)] hover:underline">Refresh</button>
-                                </div>
-                                <div className="space-y-2 max-h-48 overflow-auto">
-                                    {jobs.length === 0 && <p className="text-xs text-[var(--text-secondary)]">No recent jobs. Upload a file or ingest data to see jobs here.</p>}
-                                    {jobs.map(job => {
-                                        const statusIcon = job.status === 'completed' ? '✅' : job.status === 'failed' ? '❌' : job.status === 'running' ? '⏳' : '⏸️';
-                                        const statusColor = job.status === 'completed' ? 'text-green-500' : job.status === 'failed' ? 'text-red-500' : job.status === 'running' ? 'text-yellow-500' : 'text-[var(--text-secondary)]';
-                                        const sourceInfo = job.meta?.filename || job.meta?.url || job.meta?.repo_url || job.meta?.source_type || job.meta?.params?.source_type || 'unknown';
-                                        const resultInfo = job.result?.total_chunks ? `${job.result.total_chunks} chunks` : job.error ? 'Error' : '';
-
-                                        return (
-                                            <div key={job.job_id} className={`flex items-center justify-between bg-[var(--bg-neutral)] p-3 rounded-lg border ${job.status === 'running' ? 'border-yellow-500/30' : 'border-[var(--border-main)]'}`}>
-                                                <div className="min-w-0 flex-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <span>{statusIcon}</span>
-                                                        <p className="text-sm font-medium text-[var(--text-primary)] truncate">{sourceInfo}</p>
-                                                    </div>
-                                                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                                                        {job.job_id.slice(0, 8)}... • {job.meta?.source_type || 'file'}
-                                                        {resultInfo && ` • ${resultInfo}`}
-                                                    </p>
-                                                </div>
-                                                <div className="text-right flex items-center gap-2 ml-2">
-                                                    <span className={`text-xs font-semibold ${statusColor}`}>{job.status}</span>
-                                                    {job.status === 'failed' && job.error && (
-                                                        <button onClick={() => alert(`Error: ${job.error}`)} className="text-xs text-red-400 hover:text-red-300">Details</button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
                                 </div>
                             </div>
+                        </div>
 
-                            {ingestType === 'database' && (
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Host</label>
-                                            <input type="text" placeholder="db.example.com" value={dbHost} onChange={(e) => setDbHost(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
+                        {ingestType === 'file' && (
+                            <div className="space-y-4">
+                                {!selectedFile ? (
+                                    <div
+                                        onDragEnter={handleDrag}
+                                        onDragLeave={handleDrag}
+                                        onDragOver={handleDrag}
+                                        onDrop={handleDrop}
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className={`relative border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center gap-4 transition-all cursor-pointer group ${dragActive ? 'border-[#00f2ff] bg-[#00f2ff]/5 scale-[1.02]' : 'border-white/10 hover:border-white/20 hover:bg-white/5'}`}
+                                    >
+                                        <div className={`p-4 rounded-full transition-all ${dragActive ? 'bg-[#00f2ff]/20 text-[#00f2ff] scale-110' : 'bg-white/5 text-slate-500 group-hover:text-slate-400 group-hover:scale-110'}`}>
+                                            <Upload className="w-8 h-8" />
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Port</label>
-                                            <input type="number" placeholder="5432" value={dbPort} onChange={(e) => setDbPort(parseInt(e.target.value || '5432'))} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                        <div className="text-center">
+                                            <p className="text-sm font-semibold text-[var(--text-primary)]">Click to upload or drag and drop</p>
+                                            <p className="text-xs text-[var(--text-secondary)] mt-1">PDF, TXT, DOCX, or MD (max 10MB)</p>
                                         </div>
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept=".pdf,.txt,.docx,.md"
+                                            onChange={(e) => e.target.files?.[0] && setSelectedFile(e.target.files[0])}
+                                            className="hidden"
+                                        />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Database Name</label>
-                                        <input type="text" placeholder="mydb" value={dbName} onChange={(e) => setDbName(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                ) : (
+                                    <div className="p-4 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] flex items-center gap-4">
+                                        <div className="p-3 bg-[var(--accent-secondary)]/20 rounded-lg text-[var(--accent-secondary)]">
+                                            <FileText className="w-6 h-6" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-[var(--text-primary)] truncate">{selectedFile.name}</p>
+                                            <p className="text-xs text-[var(--text-secondary)]">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setSelectedFile(null)}
+                                            className="p-2 text-[var(--text-secondary)] hover:text-red-400 transition-colors"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <input type="text" placeholder="user" value={dbUser} onChange={(e) => setDbUser(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
-                                        <input type="password" placeholder="password" value={dbPassword} onChange={(e) => setDbPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                )}
+
+                                <button
+                                    disabled={!selectedFile || uploading}
+                                    onClick={() => selectedFile && handleFileUpload(selectedFile)}
+                                    className="w-full bg-[var(--accent-primary)] hover:brightness-110 disabled:opacity-30 text-white rounded-lg py-3 font-semibold transition-all shadow-lg flex items-center justify-center gap-2"
+                                >
+                                    {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Start Ingestion'}
+                                </button>
+                            </div>
+                        )}
+
+                        {ingestType === 'web' && (
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Website URL</label>
+                                    <input
+                                        type="url"
+                                        placeholder="https://docs.example.com"
+                                        value={webUrl}
+                                        onChange={(e) => setWebUrl(e.target.value)}
+                                        className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Crawl Depth</label>
+                                        <span className="text-xs font-mono text-[var(--accent-primary)]">{maxDepth}</span>
                                     </div>
-                                    <button disabled={!dbHost || !dbName || uploading} onClick={async () => {
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="3"
+                                        value={maxDepth}
+                                        onChange={(e) => setMaxDepth(parseInt(e.target.value))}
+                                        className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[var(--accent-primary)]"
+                                    />
+                                </div>
+                                <button
+                                    disabled={!webUrl || uploading}
+                                    onClick={handleWebIngest}
+                                    className="w-full bg-[var(--accent-primary)] hover:brightness-110 disabled:opacity-30 text-white rounded-lg py-3 font-semibold transition-all shadow-lg flex items-center justify-center gap-2"
+                                >
+                                    {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Crawl & Index'}
+                                </button>
+                            </div>
+                        )}
+
+                        {ingestType === 'git' && (
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Repository URL</label>
+                                    <input
+                                        type="url"
+                                        placeholder="https://github.com/user/repo"
+                                        value={repoUrl}
+                                        onChange={(e) => setRepoUrl(e.target.value)}
+                                        className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Branch</label>
+                                    <input
+                                        type="text"
+                                        placeholder="main"
+                                        value={branch}
+                                        onChange={(e) => setBranch(e.target.value)}
+                                        className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none"
+                                    />
+                                </div>
+                                <button
+                                    disabled={!repoUrl || uploading}
+                                    onClick={handleGitIngest}
+                                    className="w-full bg-[var(--accent-primary)] hover:brightness-110 disabled:opacity-30 text-white rounded-lg py-3 font-semibold transition-all shadow-lg flex items-center justify-center gap-2"
+                                >
+                                    {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Clone & Ingest'}
+                                </button>
+                            </div>
+                        )}
+
+                        {ingestType === 'notion' && (
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Notion API Key</label>
+                                    <input
+                                        type="password"
+                                        placeholder="secret_integration_token"
+                                        value={notionApiKey}
+                                        onChange={(e) => setNotionApiKey(e.target.value)}
+                                        className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Database ID (optional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Notion database id"
+                                        value={notionDatabaseId}
+                                        onChange={(e) => setNotionDatabaseId(e.target.value)}
+                                        className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none"
+                                    />
+                                </div>
+                                <button
+                                    disabled={!notionApiKey || uploading}
+                                    onClick={async () => {
                                         setUploading(true);
-                                        setStatus({ type: 'loading', message: 'Connecting to database...' });
+                                        setStatus({ type: 'loading', message: 'Ingesting Notion...' });
                                         try {
-                                            await chatApi.ingestDatabase({ host: dbHost, port: dbPort, database: dbName, user: dbUser, password: dbPassword });
-                                            setStatus({ type: 'success', message: '✅ Database ingestion started' });
-                                            setDbHost(''); setDbName(''); setDbUser(''); setDbPassword(''); setDbPort(5432);
+                                            await chatApi.ingestNotion({ api_key: notionApiKey, database_id: notionDatabaseId });
+                                            setStatus({ type: 'success', message: '✅ Notion ingestion started' });
+                                            setNotionApiKey('');
+                                            setNotionDatabaseId('');
                                         } catch (error) {
-                                            setStatus({ type: 'error', message: `❌ ${error instanceof Error ? error.message : 'Database ingestion failed'}` });
+                                            setStatus({ type: 'error', message: `❌ ${error instanceof Error ? error.message : 'Notion ingestion failed'}` });
                                         } finally {
                                             setUploading(false);
                                             // Error messages now persist until user dismisses them
                                         }
-                                    }} className="w-full bg-[var(--accent-primary)] hover:brightness-110 disabled:opacity-30 text-white rounded-lg py-3 font-semibold transition-all shadow-lg flex items-center justify-center gap-2">{uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Ingest Database'}</button>
+                                    }}
+                                    className="w-full bg-[var(--accent-primary)] hover:brightness-110 disabled:opacity-30 text-white rounded-lg py-3 font-semibold transition-all shadow-lg flex items-center justify-center gap-2"
+                                >
+                                    {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Ingest Notion'}
+                                </button>
+                            </div>
+                        )}
+
+                        {ingestType === 'confluence' && (
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Confluence Base URL</label>
+                                    <input type="url" placeholder="https://your-domain.atlassian.net/wiki" value={confBaseUrl} onChange={(e) => setConfBaseUrl(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
                                 </div>
-                            )}
+                                <div className="grid grid-cols-2 gap-2">
+                                    <input type="email" placeholder="user@example.com" value={confEmail} onChange={(e) => setConfEmail(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                    <input type="password" placeholder="api token" value={confApiToken} onChange={(e) => setConfApiToken(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                </div>
+                                <div className="flex gap-2">
+                                    <select value={selectedConfluenceIntegration || ''} onChange={(e) => setSelectedConfluenceIntegration(e.target.value || null)} className="bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] rounded px-3 py-2 text-sm">
+                                        <option value="">-- Use saved integration --</option>
+                                        {integrations.filter(i => i.type === 'confluence').map(i => (
+                                            <option key={i.id} value={i.id}>{i.name}</option>
+                                        ))}
+                                    </select>
+                                    <button onClick={() => loadIntegrations()} className="px-3 py-2 text-xs text-[var(--accent-primary)]">Refresh</button>
+                                </div>
+                                <button disabled={(!confBaseUrl && !selectedConfluenceIntegration) || (!confEmail && !selectedConfluenceIntegration && !confApiToken) || uploading} onClick={async () => {
+                                    setUploading(true);
+                                    setStatus({ type: 'loading', message: 'Submitting Confluence ingest...' });
+                                    try {
+                                        const source_params: any = {};
+                                        if (selectedConfluenceIntegration) {
+                                            source_params['integration_id'] = selectedConfluenceIntegration;
+                                        } else {
+                                            source_params['base_url'] = confBaseUrl;
+                                            source_params['email'] = confEmail;
+                                            source_params['api_token'] = confApiToken;
+                                        }
+                                        const res = await chatApi.ingestSubmit({ source_type: 'confluence', source_params });
+                                        setStatus({ type: 'success', message: `Job submitted: ${res.job_id}` });
+                                        setPollingJobId(res.job_id);
+                                        // update jobs list
+                                        setJobs(prev => [{ job_id: res.job_id, status: 'running', progress: 0, meta: { source_type: 'confluence' } }, ...prev].slice(0, 5));
+                                        setConfBaseUrl(''); setConfEmail(''); setConfApiToken('');
+                                    } catch (error) {
+                                        setStatus({ type: 'error', message: `❌ ${error instanceof Error ? error.message : 'Confluence ingest failed'}` });
+                                    } finally {
+                                        setUploading(false);
+                                        // Error messages now persist until user dismisses them
+                                    }
+                                }} className="w-full bg-[var(--accent-primary)] hover:brightness-110 disabled:opacity-30 text-white rounded-lg py-3 font-semibold transition-all shadow-lg flex items-center justify-center gap-2">{uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Submit Confluence Ingest'}</button>
+                            </div>
+                        )}
+
+                        {ingestType === 'sharepoint' && (
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">SharePoint Site ID</label>
+                                    <input type="text" placeholder="{tenant}.sharepoint.com,site-id" value={spSiteId} onChange={(e) => setSpSiteId(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Access Token</label>
+                                    <input type="password" placeholder="OAuth access token" value={spAccessToken} onChange={(e) => setSpAccessToken(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                </div>
+                                <div className="flex gap-2">
+                                    <select value={selectedSharepointIntegration || ''} onChange={(e) => setSelectedSharepointIntegration(e.target.value || null)} className="bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] rounded px-3 py-2 text-sm">
+                                        <option value="">-- Use saved integration --</option>
+                                        {integrations.filter(i => i.type === 'sharepoint').map(i => (
+                                            <option key={i.id} value={i.id}>{i.name}</option>
+                                        ))}
+                                    </select>
+                                    <button onClick={() => loadIntegrations()} className="px-3 py-2 text-xs text-[var(--accent-primary)]">Refresh</button>
+                                </div>
+                                <button disabled={(!spSiteId && !selectedSharepointIntegration) || (!spAccessToken && !selectedSharepointIntegration) || uploading} onClick={async () => {
+                                    setUploading(true);
+                                    setStatus({ type: 'loading', message: 'Submitting SharePoint ingest...' });
+                                    try {
+                                        const source_params: any = {};
+                                        if (selectedSharepointIntegration) {
+                                            source_params['integration_id'] = selectedSharepointIntegration;
+                                        } else {
+                                            source_params['site_id'] = spSiteId;
+                                            source_params['access_token'] = spAccessToken;
+                                        }
+                                        const res = await chatApi.ingestSubmit({ source_type: 'sharepoint', source_params });
+                                        setStatus({ type: 'success', message: `Job submitted: ${res.job_id}` });
+                                        setPollingJobId(res.job_id);
+                                        setJobs(prev => [{ job_id: res.job_id, status: 'running', progress: 0, meta: { source_type: 'sharepoint' } }, ...prev].slice(0, 5));
+                                        setSpSiteId(''); setSpAccessToken(''); setSelectedSharepointIntegration(null);
+                                    } catch (error) {
+                                        setStatus({ type: 'error', message: `❌ ${error instanceof Error ? error.message : 'SharePoint ingest failed'}` });
+                                    } finally {
+                                        setUploading(false);
+                                        // Error messages now persist until user dismisses them
+                                    }
+                                }} className="w-full bg-[var(--accent-primary)] hover:brightness-110 disabled:opacity-30 text-white rounded-lg py-3 font-semibold transition-all shadow-lg flex items-center justify-center gap-2">{uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Submit SharePoint Ingest'}</button>
+                            </div>
+                        )}
+
+                        {ingestType === 'database' && (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Host</label>
+                                        <input type="text" placeholder="db.example.com" value={dbHost} onChange={(e) => setDbHost(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Port</label>
+                                        <input type="number" placeholder="5432" value={dbPort} onChange={(e) => setDbPort(parseInt(e.target.value || '5432'))} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Database Name</label>
+                                    <input type="text" placeholder="mydb" value={dbName} onChange={(e) => setDbName(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <input type="text" placeholder="user" value={dbUser} onChange={(e) => setDbUser(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                    <input type="password" placeholder="password" value={dbPassword} onChange={(e) => setDbPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
+                                </div>
+                                <button disabled={!dbHost || !dbName || uploading} onClick={async () => {
+                                    setUploading(true);
+                                    setStatus({ type: 'loading', message: 'Connecting to database...' });
+                                    try {
+                                        await chatApi.ingestDatabase({ host: dbHost, port: dbPort, database: dbName, user: dbUser, password: dbPassword });
+                                        setStatus({ type: 'success', message: '✅ Database ingestion started' });
+                                        setDbHost(''); setDbName(''); setDbUser(''); setDbPassword(''); setDbPort(5432);
+                                    } catch (error) {
+                                        setStatus({ type: 'error', message: `❌ ${error instanceof Error ? error.message : 'Database ingestion failed'}` });
+                                    } finally {
+                                        setUploading(false);
+                                        // Error messages now persist until user dismisses them
+                                    }
+                                }} className="w-full bg-[var(--accent-primary)] hover:brightness-110 disabled:opacity-30 text-white rounded-lg py-3 font-semibold transition-all shadow-lg flex items-center justify-center gap-2">{uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Ingest Database'}</button>
+
+
+                            </div>
+                        )}                        </div>
+
+                    {/* Job history panel - Always visible */}
+                    <div className="pt-6 border-t border-[var(--border-main)]">
+                        <div className="flex items-center justify-between mb-3">
+                            <p className="text-sm font-semibold text-[var(--text-primary)]">Ingest Jobs</p>
+                            <button onClick={loadJobs} className="text-xs text-[var(--accent-primary)] hover:underline flex items-center gap-1" title="Refresh">
+                                <RotateCw className="w-3 h-3" />
+                            </button>
+                        </div>
+                        <div className="space-y-2 max-h-48 overflow-auto">
+                            {jobs.length === 0 && <p className="text-xs text-[var(--text-secondary)]">No recent jobs. Upload a file or ingest data to see jobs here.</p>}
+                            {jobs.map(job => {
+                                const statusIcon = job.status === 'completed' ? '✅' : job.status === 'failed' ? '❌' : job.status === 'running' ? '⏳' : '⏸️';
+                                const statusColor = job.status === 'completed' ? 'text-green-500' : job.status === 'failed' ? 'text-red-500' : job.status === 'running' ? 'text-yellow-500' : 'text-[var(--text-secondary)]';
+                                const sourceInfo = job.meta?.filename || job.meta?.url || job.meta?.repo_url || job.meta?.source_type || job.meta?.params?.source_type || 'unknown';
+                                const resultInfo = job.result?.total_chunks ? `${job.result.total_chunks} chunks` : job.error ? 'Error' : '';
+
+                                return (
+                                    <div key={job.job_id} className={`flex items-center justify-between bg-[var(--bg-neutral)] p-3 rounded-lg border ${job.status === 'running' ? 'border-yellow-500/30' : 'border-[var(--border-main)]'}`}>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-2">
+                                                <span>{statusIcon}</span>
+                                                <p className="text-sm font-medium text-[var(--text-primary)] truncate">{sourceInfo}</p>
+                                            </div>
+                                            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                                                {job.job_id.slice(0, 8)}... • {job.meta?.source_type || 'file'}
+                                                {resultInfo && ` • ${resultInfo}`}
+                                            </p>
+                                        </div>
+                                        <div className="text-right flex items-center gap-2 ml-2">
+                                            <span className={`text-xs font-semibold ${statusColor}`}>{job.status}</span>
+                                            {job.status === 'failed' && job.error && (
+                                                <button onClick={() => alert(`Error: ${job.error}`)} className="text-xs text-red-400 hover:text-red-300">Details</button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
-
-                <div className="p-6 bg-[var(--bg-neutral)] flex justify-end gap-3 transition-colors duration-500 flex-shrink-0">
-                    <button
-                        onClick={onClose}
-                        className="px-6 py-2 border border-[var(--border-main)] text-[var(--text-secondary)] rounded-lg font-bold hover:bg-white/5 transition-all"
-                    >
-                        Close
-                    </button>
-                </div>
             </div>
-        
+
+            <div className="p-6 bg-[var(--bg-neutral)] flex justify-end gap-3 transition-colors duration-500 flex-shrink-0">
+                <button
+                    onClick={onClose}
+                    className="px-6 py-2 border border-[var(--border-main)] text-[var(--text-secondary)] rounded-lg font-bold hover:bg-white/5 transition-all"
+                >
+                    Close
+                </button>
+            </div>
+        </div>
+
     );
 }

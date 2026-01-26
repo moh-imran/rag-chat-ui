@@ -43,4 +43,14 @@ async def submit_feedback(request: FeedbackRequest):
         return result
     except Exception as e:
         logger.error(f"Error submitting feedback: {e}")
+@router.get('/feedback')
+async def get_feedback():
+    """Get all user feedback - proxies to rag-qa-api"""
+    if not _api_client:
+        raise HTTPException(status_code=503, detail="API client not initialized")
+
+    try:
+        return await _api_client.get_all_feedback()
+    except Exception as e:
+        logger.error(f"Error fetching feedback: {e}")
         raise HTTPException(status_code=500, detail=str(e))

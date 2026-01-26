@@ -298,6 +298,7 @@ export const chatApi = {
             const response = await api.get(`/ingest/jobs?limit=${limit}`, { timeout: 15000 });
             return response.data;
         } catch (error) {
+            console.error('Failed to list ingest jobs:', error);
             // On timeout, return empty list to avoid crashing
             if (axios.isAxiosError(error) && (error.code === 'ECONNABORTED' || error.message.includes('timeout'))) {
                 console.warn('Jobs list request timed out, returning cached or empty list');
@@ -306,36 +307,13 @@ export const chatApi = {
             throw handleApiError(error, 'Failed to list ingest jobs');
         }
     },
-    createIntegration: async (payload: any) => {
+
+    deleteIngestJob: async (jobId: string) => {
         try {
-            const response = await api.post('/integrations', payload);
+            const response = await api.delete(`/ingest/jobs/${jobId}`);
             return response.data;
         } catch (error) {
-            throw handleApiError(error, 'Failed to create integration');
-        }
-    },
-    listIntegrations: async () => {
-        try {
-            const response = await api.get('/integrations');
-            return response.data;
-        } catch (error) {
-            throw handleApiError(error, 'Failed to list integrations');
-        }
-    },
-    deleteIntegration: async (id: string) => {
-        try {
-            const response = await api.delete(`/integrations/${id}`);
-            return response.data;
-        } catch (error) {
-            throw handleApiError(error, 'Failed to delete integration');
-        }
-    },
-    ingestJobLogs: async (jobId: string) => {
-        try {
-            const response = await api.get(`/ingest/jobs/${jobId}/logs`);
-            return response.data;
-        } catch (error) {
-            throw handleApiError(error, 'Failed to fetch job logs');
+            throw handleApiError(error, 'Failed to delete ingest job');
         }
     },
 

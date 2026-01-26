@@ -140,5 +140,21 @@ export const adminApi = {
       headers: { Authorization: `Bearer ${token}` }
     });
     return res.data;
+  },
+
+  // Conversations & Messages
+  listConversations: async (token: string, params?: { skip?: number; limit?: number; search?: string }) => {
+    const res = await api.get('/admin/conversations', {
+      params,
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return res.data;
+  },
+
+  getConversationMessages: async (token: string, convId: string) => {
+    const res = await api.get(`/admin/conversations/${convId}/messages`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return res.data;
   }
 };

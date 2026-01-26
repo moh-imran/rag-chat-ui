@@ -121,50 +121,34 @@ class RagApiClient:
                 logger.error(f"Error calling etl_status API: {e}")
                 raise
 
-    async def etl_list_jobs(self, limit: int = 50) -> Dict[str, Any]:
+    async def etl_list_jobs(self, limit: int = 50, skip: int = 0, search: Optional[str] = None) -> Dict[str, Any]:
         """List ingest jobs from rag-qa-api (/ingest/jobs)"""
         async with httpx.AsyncClient() as client:
             try:
-                response = await client.get(f"{self.base_url}/ingest/jobs?limit={limit}", timeout=60.0)
+                params = {"limit": limit, "skip": skip}
+                if search:
+                    params["search"] = search
+                response = await client.get(f"{self.base_url}/ingest/jobs", params=params, timeout=60.0)
                 response.raise_for_status()
                 return response.json()
             except Exception as e:
                 logger.error(f"Error calling etl_list_jobs API: {e}")
                 raise
 
-    async def list_ingest_jobs(self, limit: int = 50) -> List[Dict[str, Any]]:
+    async def list_ingest_jobs(self, limit: int = 50, skip: int = 0, search: Optional[str] = None) -> List[Dict[str, Any]]:
         """Alias for etl_list_jobs - returns list of jobs for admin dashboard"""
-        result = await self.etl_list_jobs(limit=limit)
+        result = await self.etl_list_jobs(limit=limit, skip=skip, search=search)
         return result.get("jobs", [])
 
-    async def create_integration(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    async def delete_ingest_job(self, job_id: str) -> Dict[str, Any]:
+        """Call the rag-qa-api DELETE /ingest/jobs/{job_id} endpoint"""
         async with httpx.AsyncClient() as client:
             try:
-                response = await client.post(f"{self.base_url}/integrations/", json=payload, timeout=20.0)
+                response = await client.delete(f"{self.base_url}/ingest/jobs/{job_id}", timeout=60.0)
                 response.raise_for_status()
                 return response.json()
             except Exception as e:
-                logger.error(f"Error creating integration: {e}")
-                raise
-
-    async def list_integrations(self) -> Dict[str, Any]:
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.get(f"{self.base_url}/integrations/", timeout=60.0)
-                response.raise_for_status()
-                return response.json()
-            except Exception as e:
-                logger.error(f"Error listing integrations: {e}")
-                raise
-
-    async def delete_integration(self, integration_id: str) -> Dict[str, Any]:
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.delete(f"{self.base_url}/integrations/{integration_id}", timeout=60.0)
-                response.raise_for_status()
-                return response.json()
-            except Exception as e:
-                logger.error(f"Error deleting integration: {e}")
+                logger.error(f"Error calling delete_ingest_job API: {e}")
                 raise
 
     async def etl_job_logs(self, job_id: str) -> Dict[str, Any]:
@@ -301,4 +285,15 @@ class RagApiClient:
                 return response.json()
             except Exception as e:
                 logger.error(f"Error submitting feedback: {e}")
+                raise
+
+    async def get_all_feedback(self) -> List[Dict[str, Any]]:
+        """Fetch all feedback from rag-qa-api /evaluation/feedback endpoint"""
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(f"{self.base_url}/evaluation/feedback", timeout=60.0)
+                response.raise_for_status()
+                return response.json()
+            except Exception as e:
+                logger.error(f"Error fetching feedback: {e}")
                 raise

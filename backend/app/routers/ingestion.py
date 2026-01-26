@@ -135,11 +135,11 @@ async def etl_status(job_id: str):
 
 
 @router.get('/etl/jobs')
-async def etl_jobs(limit: int = 50):
+async def etl_jobs(limit: int = 50, skip: int = 0, search: Optional[str] = None):
     if not _api_client:
         raise HTTPException(status_code=503, detail="API client not initialized")
     try:
-        result = await _api_client.etl_list_jobs(limit=limit)
+        result = await _api_client.etl_list_jobs(limit=limit, skip=skip, search=search)
         return result
     except httpx.HTTPStatusError as e:
         error_msg = _extract_error_message(e)
@@ -182,6 +182,18 @@ async def ingest_status(job_id: str):
 
 
 @router.get('/jobs')
-async def ingest_jobs(limit: int = 50):
+async def ingest_jobs(limit: int = 50, skip: int = 0, search: Optional[str] = None):
     """Alias for /etl/jobs"""
-    return await etl_jobs(limit)
+    return await etl_jobs(limit, skip, search)
+
+
+@router.delete('/jobs/{job_id}')
+async def delete_ingest_job(job_id: str):
+    if not _api_client:
+        raise HTTPException(status_code=503, detail="API client not initialized")
+    try:
+        return await _api_client.delete_ingest_job(job_id)
+    except Exception as e:
+        logger.error(f"Error deleting ingest job proxy: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+

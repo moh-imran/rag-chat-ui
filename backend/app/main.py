@@ -9,8 +9,8 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from .models import User, Conversation, Message
 from .services.api_client import RagApiClient
 from .services.chat_service import ChatService
-from .routers import chat, ingestion, auth, admin, etl, evaluation
-from .routers import integrations
+from .routers import chat, ingestion, auth, admin, evaluation
+
 
 # Load environment variables
 load_dotenv()
@@ -54,16 +54,15 @@ chat_service = ChatService(api_client=api_client)
 # Set services in routers
 chat.set_chat_service(chat_service)
 ingestion.set_api_client(api_client)
-integrations.set_api_client(api_client)
-etl.set_api_client(api_client)
+
+
 evaluation.set_api_client(api_client)
 
 # Include routers
 app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(ingestion.router)
-app.include_router(integrations.router)
-app.include_router(etl.router)
+
 app.include_router(evaluation.router)
 app.include_router(admin.router)
 

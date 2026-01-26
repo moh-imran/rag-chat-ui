@@ -60,7 +60,7 @@ export interface QueryResponse {
 }
 
 export interface StreamEvent {
-    type: 'conversation_id' | 'retrieval_start' | 'retrieval_complete' | 'generation_start' | 'token' | 'done' | 'error';
+    type: 'conversation_id' | 'query_id' | 'retrieval_start' | 'retrieval_complete' | 'generation_start' | 'token' | 'done' | 'error';
     data: any;
 }
 

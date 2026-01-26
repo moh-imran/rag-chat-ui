@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import ChatContainer from './components/ChatContainer';
 import ProfileModal from './components/ProfileModal';
 import DataSourcesModal from './components/DataSourcesModal';
+import IntegrationsModal from './components/IntegrationsModal';
 import { User, UploadStatus, ChatConfig, Message } from './types';
 import { authApi } from './utils/api';
 import Auth from './components/Auth';
@@ -33,6 +34,7 @@ function App() {
     });
     const [showProfile, setShowProfile] = useState(false);
     const [showDataSourcesModal, setShowDataSourcesModal] = useState(false);
+    const [showIntegrationsModal, setShowIntegrationsModal] = useState(false);
     const [uploadStatus, setUploadStatus] = useState<UploadStatus | null>(null);
     const [currentConversationId, setCurrentConversationId] = useState<string | undefined>();
     const [messages, setMessages] = useState<Message[]>([]);
@@ -82,6 +84,7 @@ function App() {
                 onNewChat={clearChat}
                 currentConversationId={currentConversationId}
                 onOpenDataSources={() => setShowDataSourcesModal(true)}
+                onOpenIntegrations={() => setShowIntegrationsModal(true)}
             />
 
             <div className="flex-1 flex flex-col min-w-0">
@@ -108,6 +111,10 @@ function App() {
                 isOpen={showDataSourcesModal}
                 onClose={() => setShowDataSourcesModal(false)}
                 onUploadStatusChange={setUploadStatus}
+            />
+            <IntegrationsModal
+                isOpen={showIntegrationsModal}
+                onClose={() => setShowIntegrationsModal(false)}
             />
         </div>
     );
