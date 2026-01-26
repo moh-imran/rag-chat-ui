@@ -110,10 +110,10 @@ export default function DataSourcesModal({
 
     const loadIntegrations = async () => {
         try {
-            const res = await chatApi.listIntegrations();
+            // const res = await chatApi.listIntegrations();
             // store under different categories
             // not deeply normalized; just attach to state for selection
-            setIntegrations(res.integrations || []);
+            setIntegrations([]);
         } catch (e) {
             console.warn('Failed to load integrations', e);
         }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Trash2, Search } from 'lucide-react';
 import { chatApi } from '../utils/api';
 
@@ -14,8 +14,8 @@ export default function IntegrationsModal({
     const [jobs, setJobs] = useState<Array<any>>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);
-    const jobsPerPage = 10;
+    // const [currentPage, setCurrentPage] = useState(1);
+    // const jobsPerPage = 10;
 
     const loadJobs = async () => {
         setLoading(true);
@@ -53,11 +53,11 @@ export default function IntegrationsModal({
         (job.meta?.filename || job.meta?.url || job.meta?.repo_url || job.meta?.source_type || 'unknown').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const indexOfLastJob = currentPage * jobsPerPage;
-    const indexOfFirstJob = indexOfLastJob - jobsPerPage;
-    const currentJobs = filteredJobs.slice(indexOfFirstJob, indexOfLastJob);
+    // const indexOfLastJob = currentPage * jobsPerPage;
+    // const indexOfFirstJob = indexOfLastJob - jobsPerPage;
+    const currentJobs = filteredJobs; // .slice(indexOfFirstJob, indexOfLastJob);
 
-    const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+    // const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
     if (!isOpen) return null;
 
