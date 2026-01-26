@@ -55,6 +55,9 @@ export default function DataSourcesModal({
     // Helper to update status (shows in modal)
     const setStatus = (status: UploadStatus | null) => {
         setLocalStatus(status);
+        if (onUploadStatusChange) {
+            onUploadStatusChange(status);
+        }
     };
 
     // Upload State
@@ -141,7 +144,7 @@ export default function DataSourcesModal({
             return;
         }
 
-        let timeoutId: NodeJS.Timeout;
+        let timeoutId: number;
 
         const poll = async () => {
             try {

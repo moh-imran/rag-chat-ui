@@ -1,17 +1,17 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import ChatContainer from './components/ChatContainer';
 import ProfileModal from './components/ProfileModal';
 import DataSourcesModal from './components/DataSourcesModal';
-import { User, Conversation, UploadStatus, ChatConfig, Message } from './types';
+import { User, UploadStatus, ChatConfig, Message } from './types';
 import { authApi } from './utils/api';
 import Auth from './components/Auth';
 import UploadStatusBar from './components/UploadStatusBar';
 
 function App() {
     const [user, setUser] = useState<User | null>(null);
-    const [config, setConfig] = useState<ChatConfig>(() => {
+    const [config] = useState<ChatConfig>(() => {
         // Load config from localStorage (set by admin panel)
         const savedConfig = localStorage.getItem('chatConfig');
         if (savedConfig) {

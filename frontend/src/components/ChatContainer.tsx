@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Message, ChatConfig, FeedbackData } from '../types';
 import { conversationApi } from '../utils/api';
 import ChatMessage from './ChatMessage';
@@ -10,7 +10,7 @@ import { StreamingIndicator } from './StreamingIndicator';
 interface ChatContainerProps {
     messages: Message[];
     config: ChatConfig;
-    onMessagesChange: (messages: Message[]) => void;
+    onMessagesChange: React.Dispatch<React.SetStateAction<Message[]>>;
     conversationId?: string;
     onConversationIdChange: (id: string) => void;
 }
@@ -23,7 +23,7 @@ export default function ChatContainer({
     onConversationIdChange
 }: ChatContainerProps) {
     const { streamQuery, isStreaming, streamingContent, retrievalStatus, sources, queryId, conversationId: newConversationId, reset: resetStream } = useStreaming();
-    const [loading, setLoading] = useState(false);
+    const [, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -66,10 +66,10 @@ export default function ChatContainer({
                 top_k: config.topK,
                 temperature: config.temperature,
                 return_sources: config.showSources,
-                useHyde: config.useHyde,
-                routingStrategy: config.routingStrategy,
-                selectedCollections: config.selectedCollections,
-                metadataFilters: config.metadataFilters,
+                use_hyde: config.useHyde,
+                routing_strategy: config.routingStrategy,
+                specific_collections: config.selectedCollections,
+                metadata_filters: config.metadataFilters,
             });
         } catch (error: any) {
             const errorMessage: Message = {
@@ -100,7 +100,7 @@ export default function ChatContainer({
                 timestamp: new Date().toISOString(),
             };
 
-            onMessagesChange(prevMessages => [...prevMessages, assistantMessage]);
+            onMessagesChange((prevMessages: Message[]) => [...prevMessages, assistantMessage]);
             resetStream();
         }
     }, [isStreaming, queryId, newConversationId, resetStream, onMessagesChange, streamingContent, sources]);
