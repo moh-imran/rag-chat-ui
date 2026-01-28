@@ -1,17 +1,23 @@
-# ---------- Base ----------
-FROM node:20-slim AS base
+# ---------- Build ----------
+FROM node:20-slim AS build
+
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm ci
+# Copy only lockfiles first (cache-friendly)
+COPY package.json package-lock.json ./
 
-# ---------- Build ----------
-FROM base AS build
+# Force optional deps (fixes rollup bug)
+RUN npm ci --include=optional
+
+# Now copy source
 COPY . .
+
+# Build
 RUN npm run build
 
 # ---------- Production ----------
-FROM nginx:stable-alpine AS production
+FROM nginx:stable-alpine
+
 COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80
