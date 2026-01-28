@@ -1,5 +1,6 @@
 # Base stage for shared dependencies
-FROM node:18-alpine AS base
+# Use Debian-slim for stable ARM/AMD64 builds (fixes Rollup issues)
+FROM node:20-slim AS base
 WORKDIR /app
 
 # Install dependencies
@@ -17,8 +18,8 @@ FROM base AS build
 COPY . .
 RUN npm run build
 
-# Production stage - serve static files with nginx
-FROM nginx:stable-alpine AS production
-COPY --from=build /app/dist /usr/share/nginx/html
+# Production stage - serve with Node (Vite Preview) instead of Nginx
+FROM base AS production
+COPY --from=build /app/dist /app/dist
 EXPOSE 5174
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["npm", "run", "preview"]
