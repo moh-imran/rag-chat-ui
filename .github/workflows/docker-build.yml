@@ -18,11 +18,29 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
-      - name: Build & push
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & Push Backend Image
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/rag-chat-backend:latest ./backend
-          docker push ghcr.io/${{ github.repository_owner }}/rag-chat-backend:latest
-          docker build -t ghcr.io/${{ github.repository_owner }}/rag-chat-frontend:latest ./frontend
-          docker push ghcr.io/${{ github.repository_owner }}/rag-chat-frontend:latest
-          docker build -t ghcr.io/${{ github.repository_owner }}/rag-chat-admin:latest ./admin-frontend
-          docker push ghcr.io/${{ github.repository_owner }}/rag-chat-admin:latest
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            -t ghcr.io/${{ github.repository_owner }}/rag-chat-backend:latest \
+            ./backend \
+            --push
+
+      - name: Build & Push Frontend Image
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            -t ghcr.io/${{ github.repository_owner }}/rag-chat-frontend:latest \
+            ./frontend \
+            --push
+
+      - name: Build & Push Admin Frontend Image
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            -t ghcr.io/${{ github.repository_owner }}/rag-chat-admin:latest \
+            ./admin-frontend \
+            --push
