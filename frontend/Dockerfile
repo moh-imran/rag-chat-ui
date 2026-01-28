@@ -5,7 +5,8 @@ WORKDIR /app
 
 # Install dependencies first for caching
 COPY package*.json ./
-RUN npm ci --legacy-peer-deps
+# Use 'npm install' instead of 'npm ci' to allow fetching architecture-specific optional dependencies
+RUN npm install --legacy-peer-deps
 
 # ---------------- Development stage ----------------
 FROM base AS development
