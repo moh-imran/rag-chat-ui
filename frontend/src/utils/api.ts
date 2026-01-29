@@ -1,7 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import { QueryRequest, QueryResponse, StreamEvent, FeedbackRequest, WebIngestionRequest, GitIngestionRequest } from '../types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const api = axios.create({
     baseURL: API_URL,

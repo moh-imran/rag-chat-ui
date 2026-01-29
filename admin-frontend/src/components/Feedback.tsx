@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ThumbsUp, ThumbsDown, MessageSquare, Search, Loader2, RefreshCw, Calendar, MessageCircle } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+const API_URL = import.meta.env.VITE_API_URL;
 
 interface Feedback {
     timestamp: string;

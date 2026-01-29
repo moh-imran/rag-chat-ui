@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Plug, Trash2, Eye, Loader2, RefreshCw, FileText, Search } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+const API_URL = import.meta.env.VITE_API_URL;
 const api = axios.create({ baseURL: API_URL });
 
 export default function AdminPanel({ token }: { token: string }) {
