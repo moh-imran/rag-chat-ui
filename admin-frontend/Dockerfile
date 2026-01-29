@@ -3,11 +3,9 @@ FROM node:20-bookworm AS build
 WORKDIR /app
 
 # Environment variables configuration
-ARG RAG_API_URL=http://rag-qa-api:8000
-ARG MONGODB_URL=mongodb://mongodb:27017/rag_chat
+ARG VITE_API_URL=http://backend:8001
 
-ENV RAG_API_URL=$RAG_API_URL
-ENV MONGODB_URL=$MONGODB_URL
+ENV VITE_API_URL=$VITE_API_URL
 
 COPY package*.json ./
 RUN npm ci
