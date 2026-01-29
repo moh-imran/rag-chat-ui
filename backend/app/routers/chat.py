@@ -102,7 +102,8 @@ async def query_chat_stream(
                 yield event
         except Exception as e:
             logger.error(f"Error in streaming chat: {e}")
-            yield f"data: {{'event': 'error', 'error': '{str(e)}'}}\n\n"
+            error_data = json.dumps({"event": "error", "error": str(e)})
+            yield f"data: {error_data}\n\n"
 
     return StreamingResponse(
         event_generator(),
