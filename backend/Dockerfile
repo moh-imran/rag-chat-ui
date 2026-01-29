@@ -4,6 +4,13 @@ FROM python:3.10-slim
 # Set the working directory in the container
 WORKDIR /app
 
+# Environment variables configuration
+ARG RAG_API_URL=http://rag-qa-api:8000
+ARG MONGODB_URL=mongodb://mongodb:27017/rag_chat
+
+ENV RAG_API_URL=$RAG_API_URL
+ENV MONGODB_URL=$MONGODB_URL
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
