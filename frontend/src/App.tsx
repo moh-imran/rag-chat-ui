@@ -49,6 +49,11 @@ function App() {
 
     useEffect(() => {
         const checkAuth = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setUser(null);
+                return;
+            }
             try {
                 const userData = await authApi.getMe();
                 setUser(userData);
