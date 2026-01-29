@@ -1,23 +1,15 @@
-# ---------- Build ----------
-FROM node:20-slim AS build
-
+# ---------- Build stage ----------
+FROM node:20-bookworm AS build
 WORKDIR /app
 
-# Copy only lockfiles first (cache-friendly)
-COPY package.json package-lock.json ./
+COPY package*.json ./
+RUN npm ci
 
-# Force optional deps (fixes rollup bug)
-RUN npm ci --include=optional
-
-# Now copy source
 COPY . .
-
-# Build
 RUN npm run build
 
-# ---------- Production ----------
+# ---------- Runtime stage ----------
 FROM nginx:stable-alpine
-
 COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80
