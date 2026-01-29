@@ -3,7 +3,7 @@ FROM node:20-bookworm AS build
 WORKDIR /app
 
 # Environment variables configuration
-ARG VITE_API_URL=https://backend:8001
+ARG VITE_API_URL=https://rag.congni.tech/backend
 
 ENV VITE_API_URL=$VITE_API_URL
 
