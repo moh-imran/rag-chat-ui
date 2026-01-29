@@ -9,7 +9,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      - RAG_API_URL=http://host.docker.internal:8000
+      - RAG_API_URL=http://rag-qa-api:8000
       - PYTHONPATH=/app
       - MONGODB_URL=mongodb://mongodb:27017/rag_chat
     command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
