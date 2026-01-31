@@ -7,7 +7,7 @@ import logging
 router = APIRouter(prefix="/chat", tags=["chat"])
 logger = logging.getLogger(__name__)
 
-from .auth import get_current_user
+from ..services.auth import get_current_user
 from ..models import User, Conversation, Message
 
 # Global chat service instance

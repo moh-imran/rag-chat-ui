@@ -5,7 +5,7 @@ from pydantic import BaseModel, EmailStr
 from beanie.operators import In
 from ..models import User, Conversation, Message
 from ..services.authorization import require_admin
-from ..services.auth import get_password_hash
+from ..services.auth import get_password_hash, get_current_user
 from ..services.api_client import RagApiClient
 import httpx
 import os
@@ -153,17 +153,43 @@ async def update_user(user_id: str, update_data: UserUpdateRequest):
 
 
 @router.delete("/users/{user_id}")
-async def delete_user(user_id: str):
-    """Deactivate a user (soft delete)."""
+async def delete_user(user_id: str, current_user: User = Depends(get_current_user)):
+    """Permanently delete a user and their associated data."""
+    # Prevent self-deletion
+    if user_id == str(current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="You cannot delete your own administrative account."
+        )
+
     user = await User.get(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Soft delete by deactivating
-    user.is_active = False
-    await user.save()
+    # Prevent deleting the last superadmin if this is one
+    if user.role == "superadmin":
+        superadmin_count = await User.find({"role": "superadmin", "is_active": True}).count()
+        if superadmin_count <= 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot delete the last active superadmin."
+            )
 
-    return {"message": "User deactivated successfully"}
+    # 1. Find all conversations for this user
+    conversations = await Conversation.find(Conversation.user.id == user.id).to_list()
+    conv_ids = [c.id for c in conversations]
+
+    # 2. Delete all messages in those conversations
+    if conv_ids:
+        await Message.find(In(Message.conversation.id, conv_ids)).delete()
+
+    # 3. Delete the conversations
+    await Conversation.find(Conversation.user.id == user.id).delete()
+
+    # 4. Finally delete the user
+    await user.delete()
+
+    return {"message": f"User {user.email} and all associated data deleted permanently"}
 
 
 @router.post("/users/{user_id}/reset-password")

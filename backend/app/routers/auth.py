@@ -5,67 +5,59 @@ from typing import Optional
 from jose import JWTError, jwt
 
 from ..models import User
-from ..services.auth import verify_password, get_password_hash, create_access_token, SECRET_KEY, ALGORITHM
+from ..services.auth import (
+    verify_password, 
+    get_password_hash, 
+    create_access_token, 
+    SECRET_KEY, 
+    ALGORITHM,
+    get_current_user,
+    oauth2_scheme
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+from ..services.authorization import require_admin
 
 class UserRegister(BaseModel):
     email: EmailStr
     password: str
     full_name: Optional[str] = None
+    role: str = "user"
 
 class UserResponse(BaseModel):
     email: str
     full_name: Optional[str] = None
     id: str
+    role: str
 
 class Token(BaseModel):
     access_token: str
     token_type: str
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
-    import logging
-    logger = logging.getLogger(__name__)
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        logger.info(f"Validating token: {token[:20]}..." if token else "No token")
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
-            logger.warning("Token payload missing 'sub' field")
-            raise credentials_exception
-    except JWTError as e:
-        logger.error(f"JWT validation error: {e}")
-        raise credentials_exception
-    
-    user = await User.find_one(User.email == email)
-    if user is None:
-        raise credentials_exception
-    return user
-
 @router.post("/register", response_model=UserResponse)
-async def register(user_in: UserRegister):
+async def register(user_in: UserRegister, current_user: User = Depends(require_admin)):
     email = user_in.email.lower()
     existing_user = await User.find_one(User.email == email)
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    # Check if this is the first user (bootstrap admin) - OPTIONAL safeguard, but better handled by script
+    # However, since we now require admin to call this, bootstrapping must happen via script.
+    
     user = User(
         email=email,
         hashed_password=get_password_hash(user_in.password),
-        full_name=user_in.full_name
+        full_name=user_in.full_name,
+        role=user_in.role,
+        is_admin=(user_in.role in ["admin", "superadmin"])
     )
     await user.insert()
     return UserResponse(
         email=user.email,
         full_name=user.full_name,
-        id=str(user.id)
+        id=str(user.id),
+        role=user.role
     )
 
 class LoginRequest(BaseModel):
@@ -99,7 +91,8 @@ async def get_me(current_user: User = Depends(get_current_user)):
     return UserResponse(
         email=current_user.email,
         full_name=current_user.full_name,
-        id=str(current_user.id)
+        id=str(current_user.id),
+        role=current_user.role
     )
 
 class UserUpdate(BaseModel):
@@ -114,7 +107,8 @@ async def update_profile(user_update: UserUpdate, current_user: User = Depends(g
     return UserResponse(
         email=current_user.email,
         full_name=current_user.full_name,
-        id=str(current_user.id)
+        id=str(current_user.id),
+        role=current_user.role
     )
 
 class PasswordReset(BaseModel):

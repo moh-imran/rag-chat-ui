@@ -3,7 +3,7 @@ import { adminApi } from '../utils/api';
 import { Users, Search, Edit, Trash2, Key, Loader2, RefreshCw, X, Save } from 'lucide-react';
 
 interface User {
-  _id: string;
+  id: string;
   email: string;
   full_name?: string;
   role: string;
@@ -55,7 +55,7 @@ export default function UserManagement({ token }: UserManagementProps) {
   }, [searchTerm, roleFilter]);
 
   const handleDelete = async (userId: string) => {
-    if (!confirm('Are you sure you want to deactivate this user?')) return;
+    if (!confirm('Are you sure you want to PERMANENTLY delete this user and all their associated data (conversations, messages)? This action cannot be undone.')) return;
     try {
       await adminApi.deleteUser(token, userId);
       await loadUsers();
@@ -67,7 +67,7 @@ export default function UserManagement({ token }: UserManagementProps) {
   const handleSave = async () => {
     if (!selectedUser) return;
     try {
-      await adminApi.updateUser(token, selectedUser._id, {
+      await adminApi.updateUser(token, selectedUser.id, {
         full_name: selectedUser.full_name,
         role: selectedUser.role,
         is_active: selectedUser.is_active,
@@ -103,6 +103,24 @@ export default function UserManagement({ token }: UserManagementProps) {
     });
   };
 
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newUser, setNewUser] = useState({ email: '', password: '', full_name: '', role: 'user' });
+
+  const handleCreateUser = async () => {
+    if (!newUser.email || !newUser.password) {
+      alert("Email and password are required");
+      return;
+    }
+    try {
+      await adminApi.createUser(token, newUser);
+      setShowCreateModal(false);
+      setNewUser({ email: '', password: '', full_name: '', role: 'user' });
+      await loadUsers();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to create user');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -110,10 +128,16 @@ export default function UserManagement({ token }: UserManagementProps) {
           <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">User Management</h1>
           <p className="text-[var(--text-secondary)]">Manage user accounts and permissions</p>
         </div>
-        <button onClick={loadUsers} disabled={loading} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-[var(--border-main)] transition-colors disabled:opacity-50">
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          <span className="text-sm font-medium">Refresh</span>
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setShowCreateModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--accent-primary)] hover:brightness-110 text-white font-semibold transition-all">
+            <Users className="w-4 h-4" />
+            <span>Create User</span>
+          </button>
+          <button onClick={loadUsers} disabled={loading} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-[var(--border-main)] transition-colors disabled:opacity-50">
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="text-sm font-medium">Refresh</span>
+          </button>
+        </div>
       </div>
       <div className="glass-panel p-4 rounded-xl">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -160,7 +184,7 @@ export default function UserManagement({ token }: UserManagementProps) {
               </thead>
               <tbody className="divide-y divide-[var(--border-main)]">
                 {users.map((user) => (
-                  <tr key={user._id} className="hover:bg-white/5 transition-colors">
+                  <tr key={user.id} className="hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-[var(--text-primary)]">{user.email}</div>
@@ -168,18 +192,16 @@ export default function UserManagement({ token }: UserManagementProps) {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        user.role === 'superadmin' ? 'bg-purple-500/10 text-purple-500' :
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.role === 'superadmin' ? 'bg-purple-500/10 text-purple-500' :
                         user.role === 'admin' ? 'bg-blue-500/10 text-blue-500' :
-                        'bg-gray-500/10 text-gray-400'
-                      }`}>
+                          'bg-gray-500/10 text-gray-400'
+                        }`}>
                         {user.role}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        user.is_active ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
-                      }`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.is_active ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
+                        }`}>
                         {user.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
@@ -202,16 +224,16 @@ export default function UserManagement({ token }: UserManagementProps) {
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleResetPassword(user._id)}
+                          onClick={() => handleResetPassword(user.id)}
                           className="p-2 rounded-lg text-yellow-500 hover:bg-yellow-500/10 transition-colors"
                           title="Reset password"
                         >
                           <Key className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(user._id)}
+                          onClick={() => handleDelete(user.id)}
                           className="p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors"
-                          title="Deactivate user"
+                          title="Delete user permanently"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -222,8 +244,54 @@ export default function UserManagement({ token }: UserManagementProps) {
               </tbody>
             </table>
           </div>
-        )}
+        )
+        }
       </div>
+
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass-panel p-6 rounded-xl max-w-md w-full border border-[var(--border-main)]">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-[var(--text-primary)]">Create New User</h2>
+              <button onClick={() => setShowCreateModal(false)} className="p-2 rounded-lg text-[var(--text-secondary)] hover:bg-white/10 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Email</label>
+                <input type="email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} className="w-full bg-white/5 border border-[var(--border-main)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)] outline-none" placeholder="user@example.com" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Full Name</label>
+                <input type="text" value={newUser.full_name} onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })} className="w-full bg-white/5 border border-[var(--border-main)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)] outline-none" placeholder="John Doe" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Password</label>
+                <input type="password" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} className="w-full bg-white/5 border border-[var(--border-main)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)] outline-none" placeholder="••••••••" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Role</label>
+                <select value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value })} className="w-full bg-white/5 border border-[var(--border-main)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)] outline-none">
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                  <option value="superadmin">Super Admin</option>
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button onClick={handleCreateUser} className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[var(--accent-primary)] hover:brightness-110 text-white font-semibold transition-all">
+                  <Users className="w-4 h-4" />
+                  Create User
+                </button>
+                <button onClick={() => setShowCreateModal(false)} className="flex-1 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-[var(--border-main)] text-[var(--text-secondary)] font-semibold transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {editMode && selectedUser && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">

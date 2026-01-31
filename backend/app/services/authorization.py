@@ -1,5 +1,5 @@
 from fastapi import HTTPException, Depends, status
-from ..routers.auth import get_current_user
+from ..services.auth import get_current_user
 from ..models import User
 
 async def require_admin(current_user: User = Depends(get_current_user)) -> User:

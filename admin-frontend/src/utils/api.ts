@@ -72,6 +72,13 @@ export const adminApi = {
     return res.data;
   },
 
+  createUser: async (token: string, userData: { email: string; password: string; full_name: string; role: string }) => {
+    const res = await api.post('/auth/register', userData, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return res.data;
+  },
+
   resetUserPassword: async (token: string, userId: string, newPassword: string) => {
     const res = await api.post(`/admin/users/${userId}/reset-password`,
       { new_password: newPassword },
