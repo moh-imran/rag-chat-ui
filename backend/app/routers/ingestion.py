@@ -64,6 +64,7 @@ class EtlIngestRequest(BaseModel):
     chunk_overlap: int = 200
     batch_size: int = 32
     store_in_qdrant: bool = True
+    name: Optional[str] = None
 
 
 @router.post('/etl/ingest')
@@ -79,7 +80,8 @@ async def etl_ingest(request: EtlIngestRequest):
             chunk_size=request.chunk_size,
             chunk_overlap=request.chunk_overlap,
             batch_size=request.batch_size,
-            store_in_qdrant=request.store_in_qdrant
+            store_in_qdrant=request.store_in_qdrant,
+            name=request.name
         )
         return result
     except Exception as e:
@@ -94,6 +96,7 @@ class EtlSubmitRequest(BaseModel):
     chunk_overlap: int = 200
     batch_size: int = 32
     store_in_qdrant: bool = True
+    name: Optional[str] = None
 
 
 @router.post('/etl/submit')
@@ -108,7 +111,8 @@ async def etl_submit(request: EtlSubmitRequest):
             chunk_size=request.chunk_size,
             chunk_overlap=request.chunk_overlap,
             batch_size=request.batch_size,
-            store_in_qdrant=request.store_in_qdrant
+            store_in_qdrant=request.store_in_qdrant,
+            name=request.name
         )
         return result
     except Exception as e:

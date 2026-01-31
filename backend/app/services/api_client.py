@@ -70,7 +70,7 @@ class RagApiClient:
                 logger.error(f"Error calling upload API: {e}")
                 raise
 
-    async def etl_ingest(self, source_type: str, source_params: Optional[Dict[str, Any]] = None, chunk_size: int = 1000, chunk_overlap: int = 200, batch_size: int = 32, store_in_qdrant: bool = True) -> Dict[str, Any]:
+    async def etl_ingest(self, source_type: str, source_params: Optional[Dict[str, Any]] = None, chunk_size: int = 1000, chunk_overlap: int = 200, batch_size: int = 32, store_in_qdrant: bool = True, name: Optional[str] = None) -> Dict[str, Any]:
         """Call the rag-qa-api generic ingestion endpoint (/ingest/run)"""
         payload = {
             "source_type": source_type,
@@ -80,6 +80,8 @@ class RagApiClient:
             "batch_size": batch_size,
             "store_in_qdrant": store_in_qdrant
         }
+        if name:
+            payload["name"] = name
 
         async with httpx.AsyncClient() as client:
             try:
@@ -90,7 +92,7 @@ class RagApiClient:
                 logger.error(f"Error calling etl_ingest API: {e}")
                 raise
 
-    async def etl_submit(self, source_type: str, source_params: Optional[Dict[str, Any]] = None, chunk_size: int = 1000, chunk_overlap: int = 200, batch_size: int = 32, store_in_qdrant: bool = True) -> Dict[str, Any]:
+    async def etl_submit(self, source_type: str, source_params: Optional[Dict[str, Any]] = None, chunk_size: int = 1000, chunk_overlap: int = 200, batch_size: int = 32, store_in_qdrant: bool = True, name: Optional[str] = None) -> Dict[str, Any]:
         """Submit an async ETL job to rag-qa-api (/ingest/submit)"""
         payload = {
             "source_type": source_type,
@@ -100,6 +102,8 @@ class RagApiClient:
             "batch_size": batch_size,
             "store_in_qdrant": store_in_qdrant
         }
+        if name:
+            payload["name"] = name
 
         async with httpx.AsyncClient() as client:
             try:
