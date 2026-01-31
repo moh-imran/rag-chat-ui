@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import AdminPanel from './components/AdminPanel'
 import AdminHeader from './components/AdminHeader'
 import AdminSidebar from './components/AdminSidebar'

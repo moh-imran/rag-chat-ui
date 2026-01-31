@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, lazy, Suspense } from 'react';
+import { useState, useCallback, useEffect, lazy, Suspense } from 'react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import ChatContainer from './components/ChatContainer';
