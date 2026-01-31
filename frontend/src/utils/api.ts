@@ -164,10 +164,14 @@ export const chatApi = {
 
     uploadFile: async (
         file: File,
+        name?: string,
         onProgress?: (progress: number) => void
     ): Promise<any> => {
         const formData = new FormData();
         formData.append('file', file);
+        if (name) {
+            formData.append('name', name);
+        }
         formData.append('chunk_size', '1000');
         formData.append('chunk_overlap', '200');
         formData.append('store_in_qdrant', 'true');
@@ -223,12 +227,12 @@ export const chatApi = {
 
     ingestNotion: async (request: { api_key: string; database_id?: string; page_id?: string; chunk_size?: number; chunk_overlap?: number; batch_size?: number; store_in_qdrant?: boolean; }) => {
         try {
-            const response = await api.post('/ingest/etl/ingest', {
+            const response = await api.post('/ingest/submit', {
                 source_type: 'notion',
                 source_params: {
                     api_key: request.api_key,
-                    database_id: request.database_id,
-                    page_id: request.page_id
+                    ...(request.database_id && { database_id: request.database_id }),
+                    ...(request.page_id && { page_id: request.page_id })
                 },
                 chunk_size: request.chunk_size || 1000,
                 chunk_overlap: request.chunk_overlap || 200,
@@ -237,13 +241,13 @@ export const chatApi = {
             });
             return response.data;
         } catch (error) {
-            throw handleApiError(error, 'Failed to ingest Notion content');
+            throw handleApiError(error, 'Failed to submit Notion ingestion job');
         }
     },
 
     ingestDatabase: async (request: { host: string; port?: number; database: string; user?: string; password?: string; db_type?: string; query?: string; table?: string; chunk_size?: number; chunk_overlap?: number; batch_size?: number; store_in_qdrant?: boolean; }) => {
         try {
-            const response = await api.post('/ingest/etl/ingest', {
+            const response = await api.post('/ingest/submit', {
                 source_type: 'database',
                 source_params: {
                     host: request.host,
@@ -252,8 +256,8 @@ export const chatApi = {
                     user: request.user,
                     password: request.password,
                     db_type: request.db_type || 'postgresql',
-                    query: request.query,
-                    table: request.table
+                    ...(request.query && { query: request.query }),
+                    ...(request.table && { table: request.table })
                 },
                 chunk_size: request.chunk_size || 1000,
                 chunk_overlap: request.chunk_overlap || 200,
@@ -262,7 +266,7 @@ export const chatApi = {
             });
             return response.data;
         } catch (error) {
-            throw handleApiError(error, 'Failed to ingest Database content');
+            throw handleApiError(error, 'Failed to submit Database ingestion job');
         }
     },
 

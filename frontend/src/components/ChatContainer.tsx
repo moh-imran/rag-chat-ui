@@ -26,12 +26,25 @@ export default function ChatContainer({
     const [, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const scrollToBottom = (isInstant = false) => {
+        if (!messagesEndRef.current) return;
+
+        const container = messagesEndRef.current.parentElement?.parentElement;
+        if (!container) {
+            messagesEndRef.current.scrollIntoView({ behavior: isInstant ? 'auto' : 'smooth' });
+            return;
+        }
+
+        // Only scroll if already near bottom (within 100px) or if it's an instant scroll (new message)
+        const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+
+        if (isNearBottom || isInstant) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+        }
     };
 
     useEffect(() => {
-        scrollToBottom();
+        scrollToBottom(isStreaming);
     }, [messages, streamingContent, isStreaming]);
 
     useEffect(() => {

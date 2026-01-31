@@ -2,7 +2,7 @@ import { Message, FeedbackData } from '../types';
 import { FeedbackButtons } from './FeedbackButtons';
 import { SourceBadge } from './SourceBadge';
 import { MarkdownRenderer } from './MarkdownRenderer';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 
 interface ChatMessageProps {
@@ -12,7 +12,7 @@ interface ChatMessageProps {
     messageIndex?: number;
 }
 
-export default function ChatMessage({ message, showSources, onFeedbackSubmitted, messageIndex }: ChatMessageProps) {
+export default React.memo(function ChatMessage({ message, showSources, onFeedbackSubmitted, messageIndex }: ChatMessageProps) {
     const [showQueryId, setShowQueryId] = useState(false);
     const [copied, setCopied] = useState(false);
 
@@ -38,7 +38,7 @@ export default function ChatMessage({ message, showSources, onFeedbackSubmitted,
         <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-3xl ${message.role === 'user' ? 'ml-12' : 'mr-12'}`}>
                 <div
-                    className={`rounded-2xl px-4 py-3 shadow-lg transition-all duration-300 ${message.role === 'user'
+                    className={`rounded-2xl px-4 py-3 shadow-lg transition-all duration-300 select-text ${message.role === 'user'
                         ? 'bg-[var(--accent-primary)] text-white shadow-lg'
                         : message.error
                             ? 'bg-red-500/10 text-red-500 border border-red-500/20'
@@ -135,4 +135,4 @@ export default function ChatMessage({ message, showSources, onFeedbackSubmitted,
             </div>
         </div>
     );
-}
+});

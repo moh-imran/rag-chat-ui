@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { MessageSquare, Plus, Loader2, Database, Trash2, Inbox } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { MessageSquare, Plus, Loader2, Database, Trash2, Inbox, Search } from 'lucide-react';
 import { conversationApi } from '../utils/api';
 import { Conversation } from '../types';
 
@@ -11,7 +11,7 @@ interface SidebarProps {
     onOpenIntegrations: () => void;
 }
 
-export default function Sidebar({
+export default React.memo(function Sidebar({
     onSelectConversation,
     onNewChat,
     currentConversationId,
@@ -21,8 +21,13 @@ export default function Sidebar({
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [loading, setLoading] = useState(true);
     const [prevConversationsLength, setPrevConversationsLength] = useState(0);
+    const [searchTerm, setSearchTerm] = useState('');
 
-    const loadConversations = async () => {
+    const filteredConversations = conversations.filter(c =>
+        c.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const loadConversations = useCallback(async () => {
         try {
             const data = await conversationApi.list();
             setConversations(data);
@@ -41,7 +46,7 @@ export default function Sidebar({
         } finally {
             setLoading(false);
         }
-    };
+    }, [prevConversationsLength, loading, currentConversationId, onSelectConversation]);
 
     const handleDeleteConversation = async (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
@@ -63,12 +68,10 @@ export default function Sidebar({
         // Refresh every minute to keep timestamps fresh or when a new chat might have been started elsewhere
         const interval = setInterval(loadConversations, 60000);
         return () => clearInterval(interval);
-    }, []);
+    }, [loadConversations]);
 
-    // Re-load when currentConversationId changes (e.g. after first message)
-    useEffect(() => {
-        loadConversations();
-    }, [currentConversationId]);
+    // REDUNDANT: Removed effect that re-loaded conversations on currentConversationId change.
+    // Switching views should not trigger a full network reload of the list.
 
     const formatDate = (dateStr: string) => {
         const date = new Date(dateStr);
@@ -82,7 +85,7 @@ export default function Sidebar({
 
     return (
         <div className="w-64 glass-panel border-r border-[var(--border-main)] flex flex-col h-full z-20 transition-colors duration-500">
-            <div className="p-4">
+            <div className="p-4 space-y-3">
                 <button
                     onClick={onNewChat}
                     className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-[var(--border-main)] text-[var(--text-primary)] rounded-lg py-2.5 transition-all font-semibold active:scale-[0.98] shadow-sm"
@@ -90,6 +93,17 @@ export default function Sidebar({
                     <Plus className="w-4 h-4 text-[var(--accent-primary)]" />
                     New Chat
                 </button>
+
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]" />
+                    <input
+                        type="text"
+                        placeholder="Search chats..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full bg-white/5 border border-[var(--border-main)] rounded-lg pl-9 pr-3 py-2 text-xs text-[var(--text-primary)] focus:border-[var(--accent-primary)] outline-none transition-colors"
+                    />
+                </div>
             </div>
 
             <div className="flex-1 overflow-y-auto px-2 space-y-1 custom-scrollbar">
@@ -99,12 +113,14 @@ export default function Sidebar({
                     <div className="flex items-center justify-center p-8">
                         <Loader2 className="w-6 h-6 text-[var(--text-secondary)] animate-spin" />
                     </div>
-                ) : conversations.length === 0 ? (
+                ) : filteredConversations.length === 0 ? (
                     <div className="text-center p-8">
-                        <p className="text-sm text-[var(--text-secondary)] italic">No conversations yet</p>
+                        <p className="text-sm text-[var(--text-secondary)] italic">
+                            {searchTerm ? 'No matching chats' : 'No conversations yet'}
+                        </p>
                     </div>
                 ) : (
-                    conversations.map((conv: Conversation) => (
+                    filteredConversations.map((conv: Conversation) => (
                         <div key={conv.id} className="relative group/item">
                             <button
                                 onClick={() => onSelectConversation(conv.id)}
@@ -173,4 +189,4 @@ export default function Sidebar({
             </div>
         </div>
     );
-}
+});

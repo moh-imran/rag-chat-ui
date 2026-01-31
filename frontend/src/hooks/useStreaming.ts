@@ -24,70 +24,80 @@ export const useStreaming = () => {
         setState({
             isStreaming: true,
             streamingContent: '',
-            retrievalStatus: '🔍 Searching documents...',
+            retrievalStatus: 'Searching knowledge base...',
             sources: [],
         });
+
+        let tokenBuffer = '';
+        let lastUpdateTime = Date.now();
+        const UPDATE_INTERVAL = 50; // ms
 
         try {
             await chatApi.queryStream(
                 request,
                 (event: StreamEvent) => {
-                    // Handle both 'type' and 'event' field names
                     const eventType = event.type || (event as any).event;
                     switch (eventType) {
                         case 'conversation_id':
                             const newConvId = (event as any).conversation_id || event.data?.conversation_id;
-                            setState(prev => ({
-                                ...prev,
-                                conversationId: newConvId,
-                            }));
+                            setState(prev => ({ ...prev, conversationId: newConvId }));
                             break;
 
                         case 'query_id':
                             const qId = (event as any).query_id || event.data?.query_id;
-                            setState(prev => ({
-                                ...prev,
-                                queryId: qId,
-                            }));
+                            setState(prev => ({ ...prev, queryId: qId }));
                             break;
 
                         case 'retrieval_start':
-                            setState(prev => ({
-                                ...prev,
-                                retrievalStatus: '🔍 Searching documents...',
-                            }));
+                            setState(prev => ({ ...prev, retrievalStatus: 'Searching knowledge base...' }));
                             break;
 
                         case 'retrieval_complete':
                             setState(prev => ({
                                 ...prev,
-                                retrievalStatus: `✅ Found ${event.data.num_docs} documents`,
+                                retrievalStatus: `Found ${event.data.num_docs} documents`,
                                 sources: event.data.sources || [],
                             }));
                             break;
 
                         case 'generation_start':
-                            setState(prev => ({
-                                ...prev,
-                                retrievalStatus: '💬 Generating answer...',
-                            }));
+                            setState(prev => ({ ...prev, retrievalStatus: 'Synthesizing response...' }));
                             break;
 
                         case 'token':
-                            setState(prev => ({
-                                ...prev,
-                                streamingContent: prev.streamingContent + event.data.content,
-                            }));
+                            tokenBuffer += event.data.content;
+                            const now = Date.now();
+                            if (now - lastUpdateTime > UPDATE_INTERVAL) {
+                                const currentTokens = tokenBuffer;
+                                tokenBuffer = '';
+                                lastUpdateTime = now;
+                                setState(prev => ({
+                                    ...prev,
+                                    streamingContent: prev.streamingContent + currentTokens,
+                                }));
+                            }
                             break;
 
                         case 'done':
-                            setState(prev => ({
-                                ...prev,
-                                isStreaming: false,
-                                retrievalStatus: '',
-                                // Ensure queryId is set to trigger message finalization
-                                queryId: prev.queryId || 'stream-complete',
-                            }));
+                            // Flush remaining buffer
+                            if (tokenBuffer) {
+                                const finalTokens = tokenBuffer;
+                                tokenBuffer = '';
+                                setState(prev => ({
+                                    ...prev,
+                                    isStreaming: false,
+                                    retrievalStatus: '',
+                                    streamingContent: prev.streamingContent + finalTokens,
+                                    queryId: prev.queryId || 'stream-complete',
+                                }));
+                            } else {
+                                setState(prev => ({
+                                    ...prev,
+                                    isStreaming: false,
+                                    retrievalStatus: '',
+                                    queryId: prev.queryId || 'stream-complete',
+                                }));
+                            }
                             break;
 
                         case 'error':
@@ -102,20 +112,12 @@ export const useStreaming = () => {
                 },
                 (error) => {
                     console.error('Streaming error:', error);
-                    setState(prev => ({
-                        ...prev,
-                        isStreaming: false,
-                        retrievalStatus: '❌ Streaming failed',
-                    }));
+                    setState(prev => ({ ...prev, isStreaming: false, retrievalStatus: '❌ Streaming failed' }));
                 }
             );
         } catch (error) {
             console.error('Failed to start streaming:', error);
-            setState(prev => ({
-                ...prev,
-                isStreaming: false,
-                retrievalStatus: '❌ Failed to start',
-            }));
+            setState(prev => ({ ...prev, isStreaming: false, retrievalStatus: '❌ Failed to start' }));
         }
     }, []);
 

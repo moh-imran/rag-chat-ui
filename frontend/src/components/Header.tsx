@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { User as UserIcon, Settings, LogOut, ChevronDown, Sun, Moon } from 'lucide-react';
 import Logo from './Logo';
 import { User } from '../types';
@@ -11,7 +11,7 @@ interface HeaderProps {
     onToggleTheme: () => void;
 }
 
-export default function Header({ user, onOpenProfile, onLogout, theme, onToggleTheme }: HeaderProps) {
+export default React.memo(function Header({ user, onOpenProfile, onLogout, theme, onToggleTheme }: HeaderProps) {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -99,4 +99,4 @@ export default function Header({ user, onOpenProfile, onLogout, theme, onToggleT
             </div>
         </div>
     );
-}
+});

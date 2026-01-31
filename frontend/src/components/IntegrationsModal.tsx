@@ -50,7 +50,7 @@ export default function IntegrationsModal({
     };
 
     const filteredJobs = jobs.filter(job =>
-        (job.meta?.filename || job.meta?.url || job.meta?.repo_url || job.meta?.source_type || 'unknown').toLowerCase().includes(searchTerm.toLowerCase())
+        (job.name || job.meta?.filename || job.meta?.url || job.meta?.repo_url || job.meta?.source_type || 'unknown').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     // const indexOfLastJob = currentPage * jobsPerPage;
@@ -93,6 +93,7 @@ export default function IntegrationsModal({
                         <table className="w-full text-sm text-left text-[var(--text-secondary)]">
                             <thead className="text-xs text-[var(--text-primary)] uppercase bg-[var(--bg-neutral)]">
                                 <tr>
+                                    <th scope="col" className="px-6 py-3">Job Name</th>
                                     <th scope="col" className="px-6 py-3">Source</th>
                                     <th scope="col" className="px-6 py-3">Job ID</th>
                                     <th scope="col" className="px-6 py-3">Status</th>
@@ -102,10 +103,13 @@ export default function IntegrationsModal({
                             <tbody>
                                 {currentJobs.map(job => (
                                     <tr key={job.job_id} className="bg-[var(--bg-neutral-alpha)] border-b border-[var(--border-main)]">
-                                        <td className="px-6 py-4 font-medium text-[var(--text-primary)] truncate">
+                                        <td className="px-6 py-4 font-semibold text-[var(--text-primary)]">
+                                            {job.name || 'Unnamed Job'}
+                                        </td>
+                                        <td className="px-6 py-4 text-[var(--text-secondary)] max-w-xs truncate" title={job.meta?.filename || job.meta?.url || job.meta?.repo_url || job.meta?.source_type || 'unknown'}>
                                             {job.meta?.filename || job.meta?.url || job.meta?.repo_url || job.meta?.source_type || 'unknown'}
                                         </td>
-                                        <td className="px-6 py-4">{job.job_id.slice(0, 8)}...</td>
+                                        <td className="px-6 py-4 font-mono text-xs">{job.job_id.slice(0, 8)}...</td>
                                         <td className="px-6 py-4">{job.status}</td>
                                         <td className="px-6 py-4 text-right">
                                             <button onClick={() => handleDeleteJob(job.job_id)} className="text-red-500 hover:text-red-700">

@@ -65,6 +65,7 @@ export default function DataSourcesModal({
     const [uploading, setUploading] = useState(false);
     const [dragActive, setDragActive] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [jobName, setJobName] = useState('');
 
     // Web Ingest State
     const [webUrl, setWebUrl] = useState('');
@@ -185,9 +186,8 @@ export default function DataSourcesModal({
                     setPollInterval(newInterval);
                     setPollRetries(prev => prev + 1);
 
-                    // Update status message to show progress
-                    const progressMsg = status.progress > 0 ? ` (${Math.round(status.progress)}%)` : '';
-                    setLocalStatus({ type: 'loading', message: `⏳ Processing${progressMsg}...` });
+                    // We no longer update the main status with progress to avoid the persistent loader
+                    // Progress is still visible in the "Ingest Jobs" list below
 
                     if (pollRetries < maxRetries) {
                         timeoutId = setTimeout(poll, newInterval);
@@ -225,29 +225,30 @@ export default function DataSourcesModal({
 
     const handleFileUpload = async (file: File) => {
         setUploading(true);
-        setStatus({ type: 'loading', message: `Uploading ${file.name}...` });
+        setLocalStatus({ type: 'loading', message: `Uploading ${file.name}...` });
 
         try {
-            const data = await chatApi.uploadFile(file);
+            const data = await chatApi.uploadFile(file, jobName || undefined);
             // Check if it returned a job_id (async processing)
             if (data.job_id) {
                 setPollingJobId(data.job_id);
                 setJobs(prev => [{ job_id: data.job_id, status: 'running', progress: 0, meta: { source_type: 'file', filename: file.name } }, ...prev].slice(0, 5));
-                setStatus({
+                setLocalStatus({
                     type: 'success',
-                    message: `📤 File uploaded! Processing: ${file.name}`,
+                    message: `✅ Ingestion started for ${file.name}`,
                 });
             } else {
-                setStatus({
+                setLocalStatus({
                     type: 'success',
                     message: `✅ Processed ${data.total_chunks} chunks from ${file.name}`,
                 });
             }
             // Success messages persist until user dismisses
             setSelectedFile(null);
+            setJobName(''); // Clear job name after upload
             loadJobs(); // Refresh jobs list
         } catch (error) {
-            setStatus({
+            setLocalStatus({
                 type: 'error',
                 message: `❌ ${error instanceof Error ? error.message : 'Upload failed'}`,
             });
@@ -260,21 +261,26 @@ export default function DataSourcesModal({
     const handleWebIngest = async () => {
         if (!webUrl) return;
         setUploading(true);
-        setStatus({ type: 'loading', message: `Submitting web crawl for ${webUrl}...` });
+        setLocalStatus({ type: 'loading', message: `Submitting web crawl for ${webUrl}...` });
 
         try {
             // Use async submit endpoint for web ingestion
-            const res = await chatApi.ingestSubmit({ source_type: 'web', source_params: { url: webUrl, max_depth: maxDepth } });
+            const res = await chatApi.ingestSubmit({
+                source_type: 'web',
+                source_params: { url: webUrl, max_depth: maxDepth },
+                name: jobName || undefined
+            });
             setPollingJobId(res.job_id);
             setJobs(prev => [{ job_id: res.job_id, status: 'running', progress: 0, meta: { source_type: 'web', url: webUrl } }, ...prev].slice(0, 5));
-            setStatus({
+            setLocalStatus({
                 type: 'success',
-                message: `🌐 Web crawl started! Job: ${res.job_id.slice(0, 8)}...`,
+                message: `🌐 Web crawl started for ${webUrl}`,
             });
             setTimeout(() => setStatus(null), 5000);
             setWebUrl('');
+            setJobName('');
         } catch (error) {
-            setStatus({
+            setLocalStatus({
                 type: 'error',
                 message: `❌ ${error instanceof Error ? error.message : 'Web ingestion failed'}`,
             });
@@ -286,21 +292,26 @@ export default function DataSourcesModal({
     const handleGitIngest = async () => {
         if (!repoUrl) return;
         setUploading(true);
-        setStatus({ type: 'loading', message: `Submitting git clone for ${repoUrl}...` });
+        setLocalStatus({ type: 'loading', message: `Submitting git clone for ${repoUrl}...` });
 
         try {
             // Use async submit endpoint for git ingestion
-            const res = await chatApi.ingestSubmit({ source_type: 'git', source_params: { repo_url: repoUrl, branch } });
+            const res = await chatApi.ingestSubmit({
+                source_type: 'git',
+                source_params: { repo_url: repoUrl, branch },
+                name: jobName || undefined
+            });
             setPollingJobId(res.job_id);
             setJobs(prev => [{ job_id: res.job_id, status: 'running', progress: 0, meta: { source_type: 'git', repo_url: repoUrl } }, ...prev].slice(0, 5));
-            setStatus({
+            setLocalStatus({
                 type: 'success',
-                message: `📦 Git clone started! Job: ${res.job_id.slice(0, 8)}...`,
+                message: `📦 Git clone started for ${repoUrl}`,
             });
             setTimeout(() => setStatus(null), 5000);
             setRepoUrl('');
+            setJobName('');
         } catch (error) {
-            setStatus({
+            setLocalStatus({
                 type: 'error',
                 message: `❌ ${error instanceof Error ? error.message : 'Git ingestion failed'}`,
             });
@@ -454,6 +465,24 @@ export default function DataSourcesModal({
                                     </div>
                                 )}
 
+                                {selectedFile && (
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+                                            Job Name (Optional)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={jobName}
+                                            onChange={(e) => setJobName(e.target.value)}
+                                            placeholder={`${selectedFile.name}`}
+                                            className="w-full px-4 py-2.5 bg-[var(--bg-neutral)] border border-[var(--border-main)] rounded-lg text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
+                                        />
+                                        <p className="text-xs text-[var(--text-secondary)]">
+                                            Give this ingestion job a memorable name. If left empty, a default name will be generated.
+                                        </p>
+                                    </div>
+                                )}
+
                                 <button
                                     disabled={!selectedFile || uploading}
                                     onClick={() => selectedFile && handleFileUpload(selectedFile)}
@@ -487,7 +516,16 @@ export default function DataSourcesModal({
                                         max="3"
                                         value={maxDepth}
                                         onChange={(e) => setMaxDepth(parseInt(e.target.value))}
-                                        className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[var(--accent-primary)]"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Job Name (Optional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Web Crawl"
+                                        value={jobName}
+                                        onChange={(e) => setJobName(e.target.value)}
+                                        className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none"
                                     />
                                 </div>
                                 <button
@@ -519,6 +557,16 @@ export default function DataSourcesModal({
                                         placeholder="main"
                                         value={branch}
                                         onChange={(e) => setBranch(e.target.value)}
+                                        className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Job Name (Optional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Git Repo"
+                                        value={jobName}
+                                        onChange={(e) => setJobName(e.target.value)}
                                         className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none"
                                     />
                                 </div>
@@ -554,21 +602,39 @@ export default function DataSourcesModal({
                                         className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none"
                                     />
                                 </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Job Name (Optional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Notion Workflow"
+                                        value={jobName}
+                                        onChange={(e) => setJobName(e.target.value)}
+                                        className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none"
+                                    />
+                                </div>
                                 <button
                                     disabled={!notionApiKey || uploading}
                                     onClick={async () => {
                                         setUploading(true);
-                                        setStatus({ type: 'loading', message: 'Ingesting Notion...' });
+                                        setLocalStatus({ type: 'loading', message: 'Submitting Notion ingest...' });
                                         try {
-                                            await chatApi.ingestNotion({ api_key: notionApiKey, database_id: notionDatabaseId });
-                                            setStatus({ type: 'success', message: '✅ Notion ingestion started' });
+                                            const res = await chatApi.ingestSubmit({
+                                                source_type: 'notion',
+                                                source_params: {
+                                                    api_key: notionApiKey,
+                                                    ...(notionDatabaseId && { database_id: notionDatabaseId })
+                                                },
+                                                name: jobName || undefined
+                                            });
+                                            setJobs(prev => [{ job_id: res.job_id, status: 'running', progress: 0, meta: { source_type: 'notion' } }, ...prev].slice(0, 5));
+                                            setLocalStatus({ type: 'success', message: `📝 Notion ingest started!` });
                                             setNotionApiKey('');
                                             setNotionDatabaseId('');
+                                            setJobName('');
                                         } catch (error) {
-                                            setStatus({ type: 'error', message: `❌ ${error instanceof Error ? error.message : 'Notion ingestion failed'}` });
+                                            setLocalStatus({ type: 'error', message: `❌ ${error instanceof Error ? error.message : 'Notion ingestion failed'}` });
                                         } finally {
                                             setUploading(false);
-                                            // Error messages now persist until user dismisses them
                                         }
                                     }}
                                     className="w-full bg-[var(--accent-primary)] hover:brightness-110 disabled:opacity-30 text-white rounded-lg py-3 font-semibold transition-all shadow-lg flex items-center justify-center gap-2"
@@ -597,9 +663,19 @@ export default function DataSourcesModal({
                                     </select>
                                     <button onClick={() => loadIntegrations()} className="px-3 py-2 text-xs text-[var(--accent-primary)]">Refresh</button>
                                 </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Job Name (Optional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Confluence Space"
+                                        value={jobName}
+                                        onChange={(e) => setJobName(e.target.value)}
+                                        className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none"
+                                    />
+                                </div>
                                 <button disabled={(!confBaseUrl && !selectedConfluenceIntegration) || (!confEmail && !selectedConfluenceIntegration && !confApiToken) || uploading} onClick={async () => {
                                     setUploading(true);
-                                    setStatus({ type: 'loading', message: 'Submitting Confluence ingest...' });
+                                    setLocalStatus({ type: 'loading', message: 'Submitting Confluence ingest...' });
                                     try {
                                         const source_params: any = {};
                                         if (selectedConfluenceIntegration) {
@@ -609,14 +685,14 @@ export default function DataSourcesModal({
                                             source_params['email'] = confEmail;
                                             source_params['api_token'] = confApiToken;
                                         }
-                                        const res = await chatApi.ingestSubmit({ source_type: 'confluence', source_params });
-                                        setStatus({ type: 'success', message: `Job submitted: ${res.job_id}` });
+                                        const res = await chatApi.ingestSubmit({ source_type: 'confluence', source_params, name: jobName || undefined });
+                                        setLocalStatus({ type: 'success', message: `✅ Ingestion started!` });
                                         setPollingJobId(res.job_id);
                                         // update jobs list
                                         setJobs(prev => [{ job_id: res.job_id, status: 'running', progress: 0, meta: { source_type: 'confluence' } }, ...prev].slice(0, 5));
-                                        setConfBaseUrl(''); setConfEmail(''); setConfApiToken('');
+                                        setConfBaseUrl(''); setConfEmail(''); setConfApiToken(''); setJobName('');
                                     } catch (error) {
-                                        setStatus({ type: 'error', message: `❌ ${error instanceof Error ? error.message : 'Confluence ingest failed'}` });
+                                        setLocalStatus({ type: 'error', message: `❌ ${error instanceof Error ? error.message : 'Confluence ingest failed'}` });
                                     } finally {
                                         setUploading(false);
                                         // Error messages now persist until user dismisses them
@@ -644,9 +720,19 @@ export default function DataSourcesModal({
                                     </select>
                                     <button onClick={() => loadIntegrations()} className="px-3 py-2 text-xs text-[var(--accent-primary)]">Refresh</button>
                                 </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Job Name (Optional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="SharePoint Site"
+                                        value={jobName}
+                                        onChange={(e) => setJobName(e.target.value)}
+                                        className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none"
+                                    />
+                                </div>
                                 <button disabled={(!spSiteId && !selectedSharepointIntegration) || (!spAccessToken && !selectedSharepointIntegration) || uploading} onClick={async () => {
                                     setUploading(true);
-                                    setStatus({ type: 'loading', message: 'Submitting SharePoint ingest...' });
+                                    setLocalStatus({ type: 'loading', message: 'Submitting SharePoint ingest...' });
                                     try {
                                         const source_params: any = {};
                                         if (selectedSharepointIntegration) {
@@ -655,13 +741,13 @@ export default function DataSourcesModal({
                                             source_params['site_id'] = spSiteId;
                                             source_params['access_token'] = spAccessToken;
                                         }
-                                        const res = await chatApi.ingestSubmit({ source_type: 'sharepoint', source_params });
-                                        setStatus({ type: 'success', message: `Job submitted: ${res.job_id}` });
+                                        const res = await chatApi.ingestSubmit({ source_type: 'sharepoint', source_params, name: jobName || undefined });
+                                        setLocalStatus({ type: 'success', message: `✅ Ingestion started!` });
                                         setPollingJobId(res.job_id);
                                         setJobs(prev => [{ job_id: res.job_id, status: 'running', progress: 0, meta: { source_type: 'sharepoint' } }, ...prev].slice(0, 5));
-                                        setSpSiteId(''); setSpAccessToken(''); setSelectedSharepointIntegration(null);
+                                        setSpSiteId(''); setSpAccessToken(''); setSelectedSharepointIntegration(null); setJobName('');
                                     } catch (error) {
-                                        setStatus({ type: 'error', message: `❌ ${error instanceof Error ? error.message : 'SharePoint ingest failed'}` });
+                                        setLocalStatus({ type: 'error', message: `❌ ${error instanceof Error ? error.message : 'SharePoint ingest failed'}` });
                                     } finally {
                                         setUploading(false);
                                         // Error messages now persist until user dismisses them
@@ -690,18 +776,39 @@ export default function DataSourcesModal({
                                     <input type="text" placeholder="user" value={dbUser} onChange={(e) => setDbUser(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
                                     <input type="password" placeholder="password" value={dbPassword} onChange={(e) => setDbPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none" />
                                 </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Job Name (Optional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Database Import"
+                                        value={jobName}
+                                        onChange={(e) => setJobName(e.target.value)}
+                                        className="w-full px-4 py-3 rounded-xl bg-[var(--bg-neutral)] border border-[var(--border-main)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-primary)] outline-none"
+                                    />
+                                </div>
                                 <button disabled={!dbHost || !dbName || uploading} onClick={async () => {
                                     setUploading(true);
-                                    setStatus({ type: 'loading', message: 'Connecting to database...' });
+                                    setLocalStatus({ type: 'loading', message: 'Submitting database ingest...' });
                                     try {
-                                        await chatApi.ingestDatabase({ host: dbHost, port: dbPort, database: dbName, user: dbUser, password: dbPassword });
-                                        setStatus({ type: 'success', message: '✅ Database ingestion started' });
-                                        setDbHost(''); setDbName(''); setDbUser(''); setDbPassword(''); setDbPort(5432);
+                                        const res = await chatApi.ingestSubmit({
+                                            source_type: 'database',
+                                            source_params: {
+                                                host: dbHost,
+                                                port: dbPort,
+                                                database: dbName,
+                                                user: dbUser,
+                                                password: dbPassword,
+                                                db_type: 'postgresql'
+                                            },
+                                            name: jobName || undefined
+                                        });
+                                        setJobs(prev => [{ job_id: res.job_id, status: 'running', progress: 0, meta: { source_type: 'database', host: dbHost } }, ...prev].slice(0, 5));
+                                        setLocalStatus({ type: 'success', message: `🗄️ Database ingest started!` });
+                                        setDbHost(''); setDbName(''); setDbUser(''); setDbPassword(''); setDbPort(5432); setJobName('');
                                     } catch (error) {
-                                        setStatus({ type: 'error', message: `❌ ${error instanceof Error ? error.message : 'Database ingestion failed'}` });
+                                        setLocalStatus({ type: 'error', message: `❌ ${error instanceof Error ? error.message : 'Database ingestion failed'}` });
                                     } finally {
                                         setUploading(false);
-                                        // Error messages now persist until user dismisses them
                                     }
                                 }} className="w-full bg-[var(--accent-primary)] hover:brightness-110 disabled:opacity-30 text-white rounded-lg py-3 font-semibold transition-all shadow-lg flex items-center justify-center gap-2">{uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Ingest Database'}</button>
 
@@ -749,7 +856,7 @@ export default function DataSourcesModal({
                         </div>
                     </div>
                 </div>
-            </div>
+            </div >
 
             <div className="p-6 bg-[var(--bg-neutral)] flex justify-end gap-3 transition-colors duration-500 flex-shrink-0">
                 <button
@@ -759,7 +866,7 @@ export default function DataSourcesModal({
                     Close
                 </button>
             </div>
-        </div>
+        </div >
 
     );
 }

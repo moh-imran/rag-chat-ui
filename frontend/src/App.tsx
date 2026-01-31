@@ -1,14 +1,16 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, lazy, Suspense } from 'react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import ChatContainer from './components/ChatContainer';
-import ProfileModal from './components/ProfileModal';
-import DataSourcesModal from './components/DataSourcesModal';
-import IntegrationsModal from './components/IntegrationsModal';
 import { User, UploadStatus, ChatConfig, Message } from './types';
 import { authApi } from './utils/api';
 import Auth from './components/Auth';
 import UploadStatusBar from './components/UploadStatusBar';
+
+// Lazy load modals for better initial performance
+const ProfileModal = lazy(() => import('./components/ProfileModal'));
+const DataSourcesModal = lazy(() => import('./components/DataSourcesModal'));
+const IntegrationsModal = lazy(() => import('./components/IntegrationsModal'));
 
 function App() {
     const [user, setUser] = useState<User | null>(null);
@@ -83,7 +85,7 @@ function App() {
     }
 
     return (
-        <div className="flex h-screen mesh-bg font-sans selection:bg-[#38bdf8]/30">
+        <div className="flex h-screen mesh-bg font-sans">
             <Sidebar
                 onSelectConversation={setCurrentConversationId}
                 onNewChat={clearChat}
@@ -106,21 +108,29 @@ function App() {
                 />
             </div>
 
-            <ProfileModal
-                isOpen={showProfile}
-                onClose={() => setShowProfile(false)}
-                user={user}
-                onUserUpdate={setUser}
-            />
-            <DataSourcesModal
-                isOpen={showDataSourcesModal}
-                onClose={() => setShowDataSourcesModal(false)}
-                onUploadStatusChange={setUploadStatus}
-            />
-            <IntegrationsModal
-                isOpen={showIntegrationsModal}
-                onClose={() => setShowIntegrationsModal(false)}
-            />
+            <Suspense fallback={null}>
+                {showProfile && (
+                    <ProfileModal
+                        isOpen={showProfile}
+                        onClose={() => setShowProfile(false)}
+                        user={user}
+                        onUserUpdate={setUser}
+                    />
+                )}
+                {showDataSourcesModal && (
+                    <DataSourcesModal
+                        isOpen={showDataSourcesModal}
+                        onClose={() => setShowDataSourcesModal(false)}
+                        onUploadStatusChange={setUploadStatus}
+                    />
+                )}
+                {showIntegrationsModal && (
+                    <IntegrationsModal
+                        isOpen={showIntegrationsModal}
+                        onClose={() => setShowIntegrationsModal(false)}
+                    />
+                )}
+            </Suspense>
         </div>
     );
 }

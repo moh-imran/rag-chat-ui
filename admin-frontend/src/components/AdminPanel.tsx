@@ -138,13 +138,16 @@ export default function AdminPanel({ token }: { token: string }) {
                     <Plug className="w-5 h-5 text-[var(--accent-primary)]" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-[var(--text-primary)]">
-                        {job.meta?.filename || job.meta?.url || job.meta?.source_type || 'Unknown Source'}
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-[var(--text-primary)] text-base">
+                        {job.name || 'Unnamed Job'}
                       </span>
                       <span className="text-xs font-mono text-[var(--text-secondary)] bg-white/5 px-2 py-0.5 rounded">
                         {job.job_id.slice(0, 8)}
                       </span>
+                    </div>
+                    <div className="text-sm text-[var(--text-secondary)] mb-1">
+                      {job.meta?.filename || job.meta?.url || job.meta?.source_type || 'Unknown Source'}
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <span
@@ -159,6 +162,11 @@ export default function AdminPanel({ token }: { token: string }) {
                       >
                         {job.status}
                       </span>
+                      {job.created_by && (
+                        <span className="text-xs text-[var(--text-secondary)]">
+                          by {job.created_by}
+                        </span>
+                      )}
                       <span className="text-xs text-[var(--text-secondary)]">
                         {new Date(job.created_at || Date.now()).toLocaleString()}
                       </span>

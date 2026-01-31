@@ -13,7 +13,7 @@
     --glass-background: rgba(15, 23, 42, 0.7);
     --glass-border: rgba(255, 255, 255, 0.08);
     --glass-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.4);
-    --glass-blur: 20px;
+    --glass-blur: 12px;
 
     /* Accents */
     --accent-primary: #38bdf8;
@@ -43,7 +43,7 @@
     --glass-background: rgba(255, 255, 255, 0.7);
     --glass-border: rgba(0, 0, 0, 0.08);
     --glass-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
-    --glass-blur: 20px;
+    --glass-blur: 12px;
 
     /* Gradients */
     --mesh-1: rgba(56, 189, 248, 0.15);
@@ -60,13 +60,13 @@
 
 /* Text selection styling */
 ::selection {
-    background-color: var(--accent-primary);
-    color: white;
+    background-color: rgba(56, 189, 248, 0.4);
+    color: inherit;
 }
 
 ::-moz-selection {
-    background-color: var(--accent-primary);
-    color: white;
+    background-color: rgba(56, 189, 248, 0.4);
+    color: inherit;
 }
 
 body {
@@ -142,8 +142,6 @@ body {
 
 .glass-card {
     background: var(--bg-neutral);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
     border: 1px solid var(--border-main);
     transition: all 0.3s ease;
 }
@@ -196,4 +194,41 @@ code {
 .prose * {
     -webkit-user-select: text;
     user-select: text;
+}
+
+@keyframes pulse-soft {
+
+    0%,
+    100% {
+        opacity: 0.4;
+        transform: scale(0.95);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.animate-pulse-soft {
+    animation: pulse-soft 2s infinite ease-in-out;
+}
+
+.shimmer-text {
+    background: linear-gradient(90deg, var(--text-secondary) 0%, var(--text-primary) 50%, var(--text-secondary) 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 3s infinite linear;
 }
