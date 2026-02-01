@@ -19,6 +19,17 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
+// Add a response interceptor to clear token on 401 Unauthorized
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+            localStorage.removeItem('token');
+        }
+        return Promise.reject(error);
+    }
+);
+
 const handleApiError = (error: any, defaultMessage: string) => {
     if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError<{ detail: string }>;

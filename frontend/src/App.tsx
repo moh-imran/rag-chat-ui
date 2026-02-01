@@ -60,7 +60,9 @@ function App() {
                 const userData = await authApi.getMe();
                 setUser(userData);
             } catch (err) {
+                console.error('Auth check failed:', err);
                 setUser(null);
+                // The interceptor will have cleared the token if it was a 401
             }
         };
         checkAuth();
