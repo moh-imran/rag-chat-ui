@@ -1,6 +1,7 @@
 import asyncio
 import os
 import sys
+from urllib.parse import quote_plus
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
@@ -15,6 +16,20 @@ async def create_admin():
     load_dotenv()
     
     mongodb_url = os.getenv("MONGODB_URL", "mongodb://mongodb:27017/rag_chat")
+    
+    # Process MONGODB_URL to escape username and password if present
+    if "://" in mongodb_url and "@" in mongodb_url:
+        try:
+            scheme, rest = mongodb_url.split("://", 1)
+            userinfo, host_rest = rest.rsplit("@", 1)
+            if ":" in userinfo:
+                username, password = userinfo.split(":", 1)
+                mongodb_url = f"{scheme}://{quote_plus(username)}:{quote_plus(password)}@{host_rest}"
+            else:
+                mongodb_url = f"{scheme}://{quote_plus(userinfo)}@{host_rest}"
+        except Exception as e:
+            print(f"Warning: Failed to parse MONGODB_URL for escaping: {e}")
+
     print(f"Connecting to {mongodb_url}...")
     
     client = AsyncIOMotorClient(mongodb_url)

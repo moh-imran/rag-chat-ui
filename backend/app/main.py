@@ -1,5 +1,6 @@
 import os
 import logging
+from urllib.parse import quote_plus
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -28,6 +29,20 @@ app = FastAPI(
 async def startup_event():
     # Initialize Beanie
     mongodb_url = os.getenv("MONGODB_URL", "mongodb://localhost:27017/rag_chat")
+    
+    # Process MONGODB_URL to escape username and password if present
+    if "://" in mongodb_url and "@" in mongodb_url:
+        try:
+            scheme, rest = mongodb_url.split("://", 1)
+            userinfo, host_rest = rest.rsplit("@", 1)
+            if ":" in userinfo:
+                username, password = userinfo.split(":", 1)
+                mongodb_url = f"{scheme}://{quote_plus(username)}:{quote_plus(password)}@{host_rest}"
+            else:
+                mongodb_url = f"{scheme}://{quote_plus(userinfo)}@{host_rest}"
+        except Exception as e:
+            logger.warning(f"Failed to parse MONGODB_URL for escaping: {e}")
+
     client = AsyncIOMotorClient(mongodb_url)
     await init_beanie(
         database=client.get_default_database(),
