@@ -33,6 +33,8 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/rag-chat-backend:latest
+          build-args: |
+            MONGODB_URL=${{ secrets.MONGODB_URL }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

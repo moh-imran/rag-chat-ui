@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Environment variables configuration
 ARG RAG_API_URL=http://rag-qa-api:8000
-ARG MONGODB_URL=mongodb://mongodb:27017/rag_chat
+ARG MONGODB_URL=""
 
 ENV RAG_API_URL=$RAG_API_URL
 ENV MONGODB_URL=$MONGODB_URL
